@@ -136,8 +136,8 @@ void loop() {
       wasShowingRainEffect = false;
     }
 
-  gpsTimeUpdateTicker.update();
-  dateDisplayTicker.update();
+    gpsTimeUpdateTicker.update();
+    dateDisplayTicker.update();
   }
 }
 
