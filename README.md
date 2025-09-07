@@ -62,8 +62,8 @@ A sophisticated Arduino-based GPS clock that displays time on a 32x8 LED matrix 
 **Clone the repository**:
 
 ```bash
-git clone https://github.com/zeevy/gps-clock-32x8.git
-cd gps-clock-32x8
+git clone https://github.com/zeevy/gps-led-clock.git
+cd gps-led-clock
 ```
 
 **Open in PlatformIO**:
@@ -212,6 +212,6 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 If you encounter any issues or have questions:
 
-1. Search existing [Issues](https://github.com/zeevy/gps-clock-32x8/issues)
+1. Search existing [Issues](https://github.com/zeevy/gps-led-clock/issues)
 2. Create a new issue with detailed information
 3. Include hardware setup and error messages
