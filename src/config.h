@@ -140,10 +140,27 @@ const char* MONTH_NAMES[12]         = { "JAN", "FEB", "MAR", "APR", "MAY", "JUN"
 // POWER CYCLE DETECTION CONFIGURATION
 // ============================================================================
 
-// EEPROM addresses for power cycle detection and time format storage
-#define EEPROM_TIME_FORMAT_ADDR    0    // 1 byte: 0=12H, 1=24H
-#define EEPROM_POWER_CYCLE_ADDR    1    // 4 bytes: power cycle count
+// Legacy EEPROM addresses (deprecated - use EEPROMWearLeveling class)
+#define EEPROM_TIME_FORMAT_ADDR    0    // 1 byte: 0=12H, 1=24H (legacy)
+#define EEPROM_POWER_CYCLE_ADDR    1    // 4 bytes: power cycle count (legacy)
 #define POWER_CYCLE_THRESHOLD      5    // Number of cycles needed to toggle format
+
+// ============================================================================
+// EEPROM WEAR-LEVELING CONFIGURATION
+// ============================================================================
+
+/**
+ * @brief EEPROM wear-leveling system configuration
+ * 
+ * The wear-leveling system distributes writes across multiple slots to extend
+ * EEPROM lifetime. Each data type gets its own slot range with sequence tracking.
+ * 
+ * Memory Layout:
+ * - Addresses 0-9: Reserved for legacy/temporary use
+ * - Addresses 10-57: Time format slots (16 slots × 3 bytes = 48 bytes)
+ * - Addresses 60-155: Power cycle slots (16 slots × 6 bytes = 96 bytes)
+ * - Addresses 156+: Available for future use
+ */
 
 // ============================================================================
 // DEBUG CONFIGURATION

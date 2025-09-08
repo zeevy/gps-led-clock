@@ -21,6 +21,7 @@
 
 #include <config.h>
 #include "RainEffect.h"
+#include "EEPROMWearLeveling.h"
 
 // ============================================================================
 // CONSTANTS AND CONFIGURATION
@@ -42,6 +43,11 @@ const int CHAR_WIDTH = 5 + CHAR_SPACING;
 TinyGPSPlus gpsModule;                    // GPS module interface
 bool gpsSignalLost = false;               // GPS signal quality tracking
 bool wasShowingRainEffect = false;        // Track previous rain effect state for efficient screen clearing
+
+// ----------------------------------------------------------------------------
+// EEPROM WEAR-LEVELING
+// ----------------------------------------------------------------------------
+EEPROMWearLeveling eepromWL;              // EEPROM wear-leveling system
 
 // ----------------------------------------------------------------------------
 // TIME AND DATE MANAGEMENT
@@ -81,14 +87,17 @@ void setup() {
   Serial.begin(115200);
   while (!Serial) delay(100);
 
+  // Initialize EEPROM wear-leveling system
+  eepromWL.begin();
+
   // Initialize LED matrix with low brightness
   ledMatrix.setIntensity(LED_BRIGHTNESS_LOW);
   ledMatrix.fillScreen(LOW);
   ledMatrix.write();
   configureLedMatrix();
 
-  // Read time format from EEPROM once
-  uint8_t format = EEPROM.read(EEPROM_TIME_FORMAT_ADDR);
+  // Read time format from EEPROM using wear-leveling
+  uint8_t format = eepromWL.readTimeFormat();
   is24Hour = (format == 1);
 
   // Detect power cycles for time format switching
@@ -105,8 +114,8 @@ void setup() {
   // Display welcome message and start timers
   scrollTextHorizontally(WELCOME_MESSAGE);
 
-  // Reset power cycle counter after welcome message
-  EEPROM.put(EEPROM_POWER_CYCLE_ADDR, (unsigned long)0);
+  // Reset power cycle counter after welcome message using wear-leveling
+  eepromWL.writePowerCycleCount(0);
 
   gpsTimeUpdateTicker.start();
   dateDisplayTicker.start();
@@ -493,7 +502,7 @@ void displayGpsLocation() {
  * @brief Detects power cycles and toggles time format if threshold is reached
  * 
  * This function detects power cycles during the startup sequence to toggle between 
- * 12-hour and 24-hour time formats. The detection uses EEPROM to store cycle count.
+ * 12-hour and 24-hour time formats. The detection uses EEPROM wear-leveling to store cycle count.
  * 
  * The system works by incrementing a counter on each power cycle during startup.
  * If the counter reaches the threshold (5), it toggles the time format and resets 
@@ -501,17 +510,16 @@ void displayGpsLocation() {
  * toggles during normal operation.
  * 
  * @note Called in setup() to detect power cycles for format switching
- * @note Uses EEPROM to persist cycle data across reboots
+ * @note Uses EEPROM wear-leveling to persist cycle data across reboots
  * @note Counter resets after welcome message
  */
 void checkPowerCycles() {
-  // Read cycle count from EEPROM
-  unsigned long cycleCount = 0;
-  EEPROM.get(EEPROM_POWER_CYCLE_ADDR, cycleCount);
+  // Read cycle count from EEPROM using wear-leveling
+  unsigned long cycleCount = eepromWL.readPowerCycleCount();
   
   // Increment cycle count
   cycleCount++;
-  EEPROM.put(EEPROM_POWER_CYCLE_ADDR, cycleCount);
+  eepromWL.writePowerCycleCount(cycleCount);
 
   // If threshold reached, toggle time format
   if (cycleCount > POWER_CYCLE_THRESHOLD) toggleTimeFormat();
@@ -520,24 +528,24 @@ void checkPowerCycles() {
 /**
  * @brief Toggles between 12-hour and 24-hour time format
  * 
- * This function toggles the time format and stores the new setting in EEPROM.
+ * This function toggles the time format and stores the new setting using EEPROM wear-leveling.
  * It also displays a confirmation message on the LED matrix to inform the user
  * of the format change.
  * 
- * @note Stores the new format in EEPROM for persistence
+ * @note Stores the new format using EEPROM wear-leveling for persistence
  * @note Shows confirmation message on display
  */
 void toggleTimeFormat() {
-  bool currentFormat = EEPROM.read(EEPROM_TIME_FORMAT_ADDR);
-  bool newFormat = !currentFormat;
+  uint8_t currentFormat = eepromWL.readTimeFormat();
+  uint8_t newFormat = (currentFormat == 0) ? 1 : 0;
 
-  EEPROM.write(EEPROM_TIME_FORMAT_ADDR, newFormat);
+  eepromWL.writeTimeFormat(newFormat);
 
   // Update cached format for immediate effect
-  is24Hour = newFormat;
+  is24Hour = (newFormat == 1);
 
   // Show format change confirmation on display
-  if (newFormat) {
+  if (newFormat == 1) {
     scrollTextHorizontally(FORMAT_24H_MESSAGE);
   } else {
     scrollTextHorizontally(FORMAT_12H_MESSAGE);
