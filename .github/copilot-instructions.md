@@ -163,7 +163,7 @@ The project uses these libraries (auto-installed by PlatformIO):
 ### Common Modification Points
 - **Timezone changes**: Edit `TIMEZONE_OFFSET_*` constants in `config.h`
 - **Display messages**: Update text constants in `config.h` (lines 124-130)
-- **Hardware pins**: Modify pin definitions in `config.h` (around line 51)
+- **Hardware pins**: Modify pin definitions in the pin definitions section of `config.h`
 - **Timing intervals**: Adjust `*_INTERVAL_MS` constants in `config.h`
 - **Brightness levels**: Change `LED_BRIGHTNESS_*` in `config.h`
 
