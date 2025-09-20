@@ -69,7 +69,7 @@ const int LED_BRIGHTNESS_LOW        = 5;  // Low brightness level (0-15), used d
 #define DATE_DISPLAY_INTERVAL_MS    (2 * 60 * 1000UL + 30 * 1000UL)  // Interval to display date (2 minutes 30 seconds)
 
 // GPS Signal Management
-const unsigned long GPS_SIGNAL_TIMEOUT_MS = 60000UL;  // GPS signal timeout (60 seconds) - rain effect shown if exceeded
+const unsigned long GPS_SIGNAL_TIMEOUT_MS = 30000UL;  // GPS signal timeout (60 seconds) - rain effect shown if exceeded
 
 // Colon Blink Positions for Time Separator (x, y coordinates)
 byte COLON_BLINK_POSITIONS[][2] = {
@@ -149,7 +149,7 @@ const char* MONTH_NAMES[12]         = { "JAN", "FEB", "MAR", "APR", "MAY", "JUN"
 // DEBUG CONFIGURATION
 // ============================================================================
 
-#define ENABLE_SERIAL_DEBUG         false     // Set to true for debug output, false for production
+#define ENABLE_SERIAL_DEBUG         true     // Set to true for debug output, false for production
 
 // ============================================================================
 // DATA STRUCTURES
@@ -237,5 +237,11 @@ void checkPowerCycles();
  * Stores the new format in EEPROM and shows confirmation on display
  */
 void toggleTimeFormat();
+
+/**
+ * @brief Validates if GPS date and time are valid
+ * @return true if both date and time from GPS are valid, false otherwise
+ */
+bool validGpsDateTime();
 
 #endif // CONFIG_H

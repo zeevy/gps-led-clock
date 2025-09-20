@@ -40,7 +40,6 @@ const int CHAR_WIDTH = 5 + CHAR_SPACING;
 // GPS AND SIGNAL TRACKING
 // ----------------------------------------------------------------------------
 TinyGPSPlus gpsModule;                    // GPS module interface
-bool gpsSignalLost = false;               // GPS signal quality tracking
 bool wasShowingRainEffect = false;        // Track previous rain effect state for efficient screen clearing
 
 // ----------------------------------------------------------------------------
@@ -99,7 +98,7 @@ void setup() {
   for (int i = 0; i < ledMatrix.width() * ledMatrix.height(); i++) {
     ledMatrix.drawPixel(random(ledMatrix.width()), random(ledMatrix.height()), HIGH);
     ledMatrix.write();
-    delay(15);  // Increased delay to give user time for power cycling
+    delay(5);
   }
 
   // Display welcome message and start timers
@@ -118,16 +117,7 @@ void loop() {
     gpsModule.encode(receivedChar);
   }
 
-  // Check GPS signal quality using time age
-  gpsSignalLost = (gpsModule.time.age() > GPS_SIGNAL_TIMEOUT_MS);
-
-  if (gpsSignalLost || !gpsModule.time.isValid()) {
-    // GPS signal lost - show rain effect
-    if (!rainEffect.isInitialized()) rainEffect.initialize();
-    rainEffect.update();
-    rainEffect.render();
-    wasShowingRainEffect = true;
-  } else {
+  if (validGpsDateTime()) {
     // GPS signal good - clear screen if transitioning from rain effect
     // This prevents rain drops from being visible with time display
     if (wasShowingRainEffect) {
@@ -138,7 +128,28 @@ void loop() {
 
     gpsTimeUpdateTicker.update();
     dateDisplayTicker.update();
+  }else{
+    // GPS signal lost - show rain effect
+    if (!rainEffect.isInitialized()) rainEffect.initialize();
+    rainEffect.update();
+    rainEffect.render();
+    wasShowingRainEffect = true;
   }
+}
+
+/**
+ * @brief Checks if the GPS date and time are valid and recent.
+ * 
+ * This function validates that the GPS location, date, and time are all valid,
+ * and that the GPS data is not stale (i.e., received within the configured timeout).
+ * 
+ * @return true if GPS location, date, and time are valid and recent; false otherwise.
+ */
+bool validGpsDateTime() {
+  return gpsModule.location.isValid() &&
+         gpsModule.location.age() < GPS_SIGNAL_TIMEOUT_MS &&
+         gpsModule.date.isValid() &&
+         gpsModule.time.isValid();
 }
 
 /**
