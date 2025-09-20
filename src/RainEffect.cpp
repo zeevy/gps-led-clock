@@ -71,9 +71,12 @@ void RainEffect::update() {
   
   unsigned long currentTime = millis();
 
-  // Spawn new raindrops at regular intervals
+  // Spawn new raindrops at regular intervals with some randomness
   if ((unsigned long)(currentTime - lastRaindropSpawnTime) >= RAIN_SPAWN_INTERVAL_MS) {
-    spawnNewRaindrop();
+    // Add 70% probability to make spawning more natural and less predictable
+    if (random(100) < 70) {
+      spawnNewRaindrop();
+    }
     lastRaindropSpawnTime = currentTime;
   }
   
@@ -137,7 +140,7 @@ void RainEffect::render() {
         ledMatrix.drawPixel(groundFlashArray[flashIndex].positionX, groundYPosition, HIGH);
 
         // Draw spread effect for more dramatic flash (high intensity)
-        if (groundFlashArray[flashIndex].brightnessIntensity > 10) {
+        if (groundFlashArray[flashIndex].brightnessIntensity > 8) {
           // Left spread
           if (groundFlashArray[flashIndex].positionX > 0) {
             ledMatrix.drawPixel(groundFlashArray[flashIndex].positionX - 1, groundYPosition, HIGH);
@@ -149,7 +152,7 @@ void RainEffect::render() {
         }
 
         // Draw upward splash effect (medium intensity)
-        if (groundFlashArray[flashIndex].brightnessIntensity > 5 && groundYPosition > 0) {
+        if (groundFlashArray[flashIndex].brightnessIntensity > 4 && groundYPosition > 0) {
           ledMatrix.drawPixel(groundFlashArray[flashIndex].positionX, groundYPosition - 1, HIGH);
         }
       }
@@ -230,17 +233,35 @@ void RainEffect::updateFallingRaindrops() {
  * The flash starts at maximum brightness and fades out over time.
  */
 void RainEffect::createGroundImpactFlash(int xPosition) {
-  // Find an inactive ground flash slot
+  int availableIndex = -1;
+  int oldestIndex = 0;
+  unsigned long oldestTime = millis(); // Start with current time
+  
+  // First, try to find an inactive ground flash slot
   for (int flashIndex = 0; flashIndex < MAX_GROUND_FLASHES; flashIndex++) {
     if (!groundFlashArray[flashIndex].isActive) {
-      // Initialize ground flash properties
-      groundFlashArray[flashIndex].positionX = xPosition;
-      groundFlashArray[flashIndex].brightnessIntensity = 15;  // Maximum brightness
-      groundFlashArray[flashIndex].flashStartTime = millis();
-      groundFlashArray[flashIndex].isActive = true;
+      availableIndex = flashIndex;
       break;
+    } else {
+      // Track the oldest active flash in case we need to replace it
+      if (groundFlashArray[flashIndex].flashStartTime <= oldestTime) {
+        oldestTime = groundFlashArray[flashIndex].flashStartTime;
+        oldestIndex = flashIndex;
+      }
     }
   }
+  
+  // Use available slot, or replace the oldest active flash
+  int useIndex = (availableIndex != -1) ? availableIndex : oldestIndex;
+  
+  // Initialize ground flash properties
+  groundFlashArray[useIndex].positionX = xPosition;
+  // Add some variation to flash intensity (10-15) for more realism
+  int initialIntensity = random(10, 16);
+  groundFlashArray[useIndex].brightnessIntensity = initialIntensity;
+  groundFlashArray[useIndex].initialIntensity = initialIntensity;
+  groundFlashArray[useIndex].flashStartTime = millis();
+  groundFlashArray[useIndex].isActive = true;
 }
 
 /**
@@ -267,10 +288,11 @@ void RainEffect::updateGroundImpactFlashes() {
         // Safety check to prevent division by zero
         if (GROUND_FLASH_DURATION_MS > 0) {
           float fadeRatio = 1.0 - (float)elapsedTime / GROUND_FLASH_DURATION_MS;
-          groundFlashArray[flashIndex].brightnessIntensity = (int)(15 * fadeRatio);
+          // Use stored initial intensity for proper fading
+          groundFlashArray[flashIndex].brightnessIntensity = (int)(groundFlashArray[flashIndex].initialIntensity * fadeRatio);
         } else {
-          // Fallback: set to maximum brightness if duration is invalid
-          groundFlashArray[flashIndex].brightnessIntensity = 15;
+          // Fallback: set to stored initial intensity if duration is invalid
+          groundFlashArray[flashIndex].brightnessIntensity = groundFlashArray[flashIndex].initialIntensity;
         }
       }
     }

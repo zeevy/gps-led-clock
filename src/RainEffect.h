@@ -48,6 +48,7 @@ struct RainDrop {
 struct GroundFlash {
   int positionX;           /**< X coordinate of the flash effect */
   int brightnessIntensity; /**< Current brightness intensity (0-15) */
+  int initialIntensity;    /**< Initial brightness intensity for proper fading */
   unsigned long flashStartTime; /**< Timestamp when the flash started */
   bool isActive;           /**< Whether this flash is currently active */
 };
@@ -133,22 +134,22 @@ private:
   // ========================================================================
   
   /** Maximum number of simultaneous raindrops */
-  static const int MAX_RAINDROPS = 12;
+  static const int MAX_RAINDROPS = 8;
   
   /** Maximum number of simultaneous ground flashes */
-  static const int MAX_GROUND_FLASHES = 4;
+  static const int MAX_GROUND_FLASHES = 6;
   
   /** Time interval between spawning new raindrops (milliseconds) */
-  static const int RAIN_SPAWN_INTERVAL_MS = 200;
+  static const int RAIN_SPAWN_INTERVAL_MS = 250;
   
   /** Minimum fall speed for raindrops (milliseconds between moves) */
-  static const int RAIN_FALL_SPEED_MIN_MS = 50;
+  static const int RAIN_FALL_SPEED_MIN_MS = 80;
   
   /** Maximum fall speed for raindrops (milliseconds between moves) */
-  static const int RAIN_FALL_SPEED_MAX_MS = 100;
+  static const int RAIN_FALL_SPEED_MAX_MS = 150;
   
   /** Duration of ground flash effect (milliseconds) */
-  static const int GROUND_FLASH_DURATION_MS = 200;
+  static const int GROUND_FLASH_DURATION_MS = 300;
   
   // ========================================================================
   // MEMBER VARIABLES
