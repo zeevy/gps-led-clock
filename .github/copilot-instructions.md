@@ -29,15 +29,15 @@ The project follows standard PlatformIO structure:
 **CRITICAL BUILD NOTES:**
 - Build requires internet connection to download AVR platform and libraries
 - If build fails with `HTTPClientError`, you have network connectivity issues
-- Build time varies (30 seconds to 5 minutes depending on platform download needs)
-- NEVER CANCEL builds - set timeout to 10+ minutes: `timeout=600`
+- Build time varies (30 seconds to 10 minutes depending on platform download needs)
+- NEVER CANCEL builds - set timeout to 10 minutes: `timeout=600`
 
 #### Bootstrap and Build Process:
 ```bash
 cd /path/to/gps-led-clock
 export PATH="$PATH:$HOME/.local/bin"
 
-# Install dependencies and build (first run may take 5-10 minutes)
+# Install dependencies and build (first run may take up to 10 minutes)
 pio run
 
 # Build specific targets
