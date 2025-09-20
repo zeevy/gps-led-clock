@@ -168,7 +168,7 @@ The project uses these libraries (auto-installed by PlatformIO):
 - **Brightness levels**: Change `LED_BRIGHTNESS_*` in `config.h`
 
 ### Code Structure
-- **Total lines**: ~1585 lines of C/C++ code
+- **Codebase size**: moderate-sized C/C++ project
 - **Main files**: 
   - `main.cpp` (main application logic)
   - `config.h` (configuration constants)
