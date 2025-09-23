@@ -21,6 +21,7 @@
 
 #include <config.h>
 #include "RainEffect.h"
+#include "GpsStabilityFilter.h"
 
 // ============================================================================
 // CONSTANTS AND CONFIGURATION
@@ -41,7 +42,7 @@ const int CHAR_WIDTH = 5 + CHAR_SPACING;
 // ----------------------------------------------------------------------------
 TinyGPSPlus gpsModule;                    // GPS module interface
 bool wasShowingRainEffect = false;        // Track previous rain effect state for efficient screen clearing
-GpsStabilityFilter gpsFilter;             // GPS coordinates stability filter
+GpsStabilityFilter gpsFilter(gpsModule);  // GPS coordinates stability filter
 
 // ----------------------------------------------------------------------------
 // TIME AND DATE MANAGEMENT
@@ -457,181 +458,6 @@ void animateVerticalSlide(char previousChar, char newChar, int xPosition) {
 }
 
 /**
- * @brief Helper function to sort an array of float values (for median calculation)
- * 
- * This function performs a simple bubble sort on a small array of float values.
- * Used internally by the GPS filtering functions to calculate median values.
- * 
- * @param arr Array of float values to sort
- * @param n Number of elements in the array
- */
-void sortFloatArray(float arr[], uint8_t n) {
-  for (uint8_t i = 0; i < n - 1; i++) {
-    for (uint8_t j = 0; j < n - i - 1; j++) {
-      if (arr[j] > arr[j + 1]) {
-        // Swap elements
-        float temp = arr[j];
-        arr[j] = arr[j + 1];
-        arr[j + 1] = temp;
-      }
-    }
-  }
-}
-
-/**
- * @brief Updates GPS stability filter with new coordinate readings
- * 
- * This function adds new GPS readings to the stability filter buffers using
- * a FIFO (First In, First Out) approach. It should be called whenever new
- * valid GPS location data is available.
- * 
- * @note Automatically manages buffer overflow using circular buffer approach
- * @note Only updates filter if GPS location data is valid
- */
-void updateGpsStabilityFilter() {
-  // Only update filter if GPS location data is valid
-  if (!gpsModule.location.isValid() || !gpsModule.altitude.isValid()) {
-    return;
-  }
-
-  // Add new readings to the FIFO buffers
-  gpsFilter.latReadings[gpsFilter.currentIndex] = gpsModule.location.lat();
-  gpsFilter.lonReadings[gpsFilter.currentIndex] = gpsModule.location.lng();
-  gpsFilter.altReadings[gpsFilter.currentIndex] = gpsModule.altitude.feet();
-
-  // Update indices and counters (circular buffer)
-  gpsFilter.currentIndex = (gpsFilter.currentIndex + 1) % GPS_FILTER_WINDOW_SIZE;
-  
-  // Track total readings for adaptive window sizing
-  if (gpsFilter.totalReadings < GPS_FILTER_WINDOW_SIZE) {
-    gpsFilter.totalReadings++;
-  }
-}
-
-/**
- * @brief Gets filtered latitude value using hybrid median+average filter
- * 
- * This function applies a hybrid filtering approach:
- * 1. Creates a working copy of recent latitude readings
- * 2. Sorts the values to find the median (removes outliers)
- * 3. Calculates average of the middle values for final result
- * 
- * @return Filtered latitude value, or raw value if insufficient data
- */
-float getFilteredLatitude() {
-  // If insufficient readings available, return raw GPS value
-  if (gpsFilter.totalReadings < GPS_FILTER_MIN_READINGS || !gpsModule.location.isValid()) {
-    return gpsModule.location.lat();
-  }
-
-  // Create working copy of readings for sorting (preserve original buffer)  
-  float workingBuffer[GPS_FILTER_WINDOW_SIZE];
-  uint8_t readingsToProcess = gpsFilter.totalReadings;
-  
-  for (uint8_t i = 0; i < readingsToProcess; i++) {
-    workingBuffer[i] = gpsFilter.latReadings[i];
-  }
-
-  // Sort values to find median and remove outliers
-  sortFloatArray(workingBuffer, readingsToProcess);
-
-  // Calculate average of middle values (hybrid median+average approach)
-  // Use middle 60% of values to balance stability and responsiveness  
-  uint8_t startIndex = readingsToProcess > 5 ? readingsToProcess / 5 : 0;  // Skip bottom 20% if enough readings
-  uint8_t endIndex = readingsToProcess > 5 ? readingsToProcess - startIndex : readingsToProcess;  // Skip top 20% if enough readings
-  
-  float sum = 0.0;
-  uint8_t count = 0;
-  
-  for (uint8_t i = startIndex; i < endIndex; i++) {
-    sum += workingBuffer[i];
-    count++;
-  }
-
-  return (count > 0) ? (sum / count) : gpsModule.location.lat();
-}
-
-/**
- * @brief Gets filtered longitude value using hybrid median+average filter
- * 
- * This function applies the same hybrid filtering approach as getFilteredLatitude()
- * but operates on longitude readings from the GPS filter buffer.
- * 
- * @return Filtered longitude value, or raw value if insufficient data
- */
-float getFilteredLongitude() {
-  // If insufficient readings available, return raw GPS value
-  if (gpsFilter.totalReadings < GPS_FILTER_MIN_READINGS || !gpsModule.location.isValid()) {
-    return gpsModule.location.lng();
-  }
-
-  // Create working copy of readings for sorting (preserve original buffer)
-  float workingBuffer[GPS_FILTER_WINDOW_SIZE];
-  uint8_t readingsToProcess = gpsFilter.totalReadings;
-  
-  for (uint8_t i = 0; i < readingsToProcess; i++) {
-    workingBuffer[i] = gpsFilter.lonReadings[i];
-  }
-
-  // Sort values to find median and remove outliers
-  sortFloatArray(workingBuffer, readingsToProcess);
-
-  // Calculate average of middle values (hybrid median+average approach)
-  uint8_t startIndex = readingsToProcess > 5 ? readingsToProcess / 5 : 0;  // Skip bottom 20% if enough readings
-  uint8_t endIndex = readingsToProcess > 5 ? readingsToProcess - startIndex : readingsToProcess;  // Skip top 20% if enough readings
-  
-  float sum = 0.0;
-  uint8_t count = 0;
-  
-  for (uint8_t i = startIndex; i < endIndex; i++) {
-    sum += workingBuffer[i];
-    count++;
-  }
-
-  return (count > 0) ? (sum / count) : gpsModule.location.lng();
-}
-
-/**
- * @brief Gets filtered altitude value using hybrid median+average filter
- * 
- * This function applies the same hybrid filtering approach as other coordinate
- * filtering functions but operates on altitude readings in feet.
- * 
- * @return Filtered altitude value, or raw value if insufficient data
- */
-float getFilteredAltitude() {
-  // If insufficient readings available, return raw GPS value
-  if (gpsFilter.totalReadings < GPS_FILTER_MIN_READINGS || !gpsModule.altitude.isValid()) {
-    return gpsModule.altitude.feet();
-  }
-
-  // Create working copy of readings for sorting (preserve original buffer)
-  float workingBuffer[GPS_FILTER_WINDOW_SIZE];
-  uint8_t readingsToProcess = gpsFilter.totalReadings;
-  
-  for (uint8_t i = 0; i < readingsToProcess; i++) {
-    workingBuffer[i] = gpsFilter.altReadings[i];
-  }
-
-  // Sort values to find median and remove outliers
-  sortFloatArray(workingBuffer, readingsToProcess);
-
-  // Calculate average of middle values (hybrid median+average approach)
-  uint8_t startIndex = readingsToProcess > 5 ? readingsToProcess / 5 : 0;  // Skip bottom 20% if enough readings
-  uint8_t endIndex = readingsToProcess > 5 ? readingsToProcess - startIndex : readingsToProcess;  // Skip top 20% if enough readings
-  
-  float sum = 0.0;
-  uint8_t count = 0;
-  
-  for (uint8_t i = startIndex; i < endIndex; i++) {
-    sum += workingBuffer[i];
-    count++;
-  }
-
-  return (count > 0) ? (sum / count) : gpsModule.altitude.feet();
-}
-
-/**
  * @brief Displays GPS location information (latitude, longitude, altitude)
  * 
  * This function displays the current GPS coordinates
@@ -650,10 +476,10 @@ void displayGpsLocation() {
   if (!gpsModule.location.isValid()) return;
 
   // Update GPS stability filter with new readings
-  updateGpsStabilityFilter();
+  gpsFilter.update();
 
   // Display latitude using filtered value for stability (4 decimal places = ~11m accuracy)
-  float lat = getFilteredLatitude();
+  float lat = gpsFilter.getFilteredLatitude();
   int latInt = (int)lat;
   float latDecimal = lat - latInt;
   int latFrac = (int)(latDecimal * GPS_COORD_PRECISION_MULTIPLIER);
@@ -665,14 +491,14 @@ void displayGpsLocation() {
   Serial.print(", Filtered: ");
   Serial.print(lat, 6);
   Serial.print(", Readings: ");
-  Serial.println(gpsFilter.totalReadings);
+  Serial.println(gpsFilter.getTotalReadings());
   #endif
   
   snprintf(textScrollBuffer, sizeof(textScrollBuffer), "%s%d.%04d", GPS_LAT_PREFIX, latInt, latFrac);
   scrollTextHorizontally(textScrollBuffer);
 
   // Display longitude using filtered value for stability (4 decimal places = ~11m accuracy)
-  float lng = getFilteredLongitude();
+  float lng = gpsFilter.getFilteredLongitude();
   int lngInt = (int)lng;
   float lngDecimal = lng - lngInt;
   int lngFrac = (int)(lngDecimal * GPS_COORD_PRECISION_MULTIPLIER);
@@ -691,7 +517,7 @@ void displayGpsLocation() {
   // Display altitude using filtered value for stability if available
   if (gpsModule.altitude.isValid()) {
     // Use filtered altitude value and integer arithmetic since Arduino sprintf doesn't support floating-point
-    double altFeet = getFilteredAltitude();
+    double altFeet = gpsFilter.getFilteredAltitude();
     int altInt = (int)altFeet;
     int altFrac = (int)((altFeet - altInt) * GPS_ALT_PRECISION_MULTIPLIER);
     
