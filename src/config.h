@@ -117,6 +117,10 @@ const char* GPS_ALT_SUFFIX          = "ft";    // Altitude suffix (feet)
 #define GPS_COORD_PRECISION_MULTIPLIER  10000    // For 4 decimal places (~11m accuracy)
 #define GPS_ALT_PRECISION_MULTIPLIER    10       // For 1 decimal place
 
+// GPS Stability Filtering Configuration
+#define GPS_FILTER_WINDOW_SIZE          12       // Number of readings to average (12 readings ≈ 12 seconds)
+#define GPS_FILTER_MIN_READINGS         3        // Minimum readings needed before filtering (adaptive window)
+
 // ============================================================================
 // TEXT AND MESSAGES
 // ============================================================================
@@ -169,6 +173,22 @@ struct TimeDigits {
   uint8_t minTens = ' ';   /**< Minutes tens digit (0-5) */
   uint8_t secOnes = ' ';   /**< Seconds ones digit (0-9) */
   uint8_t secTens = ' ';   /**< Seconds tens digit (0-5) */
+};
+
+/**
+ * @struct GpsStabilityFilter
+ * @brief GPS coordinate stability filter using hybrid median+average filtering
+ * 
+ * This structure implements a stability filter for GPS coordinates to reduce
+ * the natural variations in GPS readings that occur even when stationary.
+ * Uses a FIFO buffer system with hybrid median and average filtering.
+ */
+struct GpsStabilityFilter {
+  float latReadings[GPS_FILTER_WINDOW_SIZE];     /**< Latitude readings buffer */
+  float lonReadings[GPS_FILTER_WINDOW_SIZE];     /**< Longitude readings buffer */
+  float altReadings[GPS_FILTER_WINDOW_SIZE];     /**< Altitude readings buffer */
+  uint8_t currentIndex = 0;                      /**< Current insertion index for FIFO */
+  uint8_t totalReadings = 0;                     /**< Total readings collected so far */
 };
 
 // ============================================================================
@@ -243,5 +263,29 @@ void toggleTimeFormat();
  * @return true if both date and time from GPS are valid, false otherwise
  */
 bool validGpsDateTime();
+
+/**
+ * @brief Updates GPS stability filter with new coordinate readings
+ * Called when valid GPS location data is available
+ */
+void updateGpsStabilityFilter();
+
+/**
+ * @brief Gets filtered latitude value using hybrid median+average filter
+ * @return Filtered latitude value, or raw value if insufficient data
+ */
+float getFilteredLatitude();
+
+/**
+ * @brief Gets filtered longitude value using hybrid median+average filter  
+ * @return Filtered longitude value, or raw value if insufficient data
+ */
+float getFilteredLongitude();
+
+/**
+ * @brief Gets filtered altitude value using hybrid median+average filter
+ * @return Filtered altitude value, or raw value if insufficient data
+ */
+float getFilteredAltitude();
 
 #endif // CONFIG_H
