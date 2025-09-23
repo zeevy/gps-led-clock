@@ -536,9 +536,9 @@ float getFilteredLatitude() {
   sortFloatArray(workingBuffer, readingsToProcess);
 
   // Calculate average of middle values (hybrid median+average approach)
-  // Use middle 60% of values to balance stability and responsiveness
-  uint8_t startIndex = readingsToProcess / 5;  // Skip bottom 20%
-  uint8_t endIndex = readingsToProcess - startIndex;  // Skip top 20%
+  // Use middle 60% of values to balance stability and responsiveness  
+  uint8_t startIndex = readingsToProcess > 5 ? readingsToProcess / 5 : 0;  // Skip bottom 20% if enough readings
+  uint8_t endIndex = readingsToProcess > 5 ? readingsToProcess - startIndex : readingsToProcess;  // Skip top 20% if enough readings
   
   float sum = 0.0;
   uint8_t count = 0;
@@ -577,8 +577,8 @@ float getFilteredLongitude() {
   sortFloatArray(workingBuffer, readingsToProcess);
 
   // Calculate average of middle values (hybrid median+average approach)
-  uint8_t startIndex = readingsToProcess / 5;  // Skip bottom 20%
-  uint8_t endIndex = readingsToProcess - startIndex;  // Skip top 20%
+  uint8_t startIndex = readingsToProcess > 5 ? readingsToProcess / 5 : 0;  // Skip bottom 20% if enough readings
+  uint8_t endIndex = readingsToProcess > 5 ? readingsToProcess - startIndex : readingsToProcess;  // Skip top 20% if enough readings
   
   float sum = 0.0;
   uint8_t count = 0;
@@ -617,8 +617,8 @@ float getFilteredAltitude() {
   sortFloatArray(workingBuffer, readingsToProcess);
 
   // Calculate average of middle values (hybrid median+average approach)
-  uint8_t startIndex = readingsToProcess / 5;  // Skip bottom 20%
-  uint8_t endIndex = readingsToProcess - startIndex;  // Skip top 20%
+  uint8_t startIndex = readingsToProcess > 5 ? readingsToProcess / 5 : 0;  // Skip bottom 20% if enough readings
+  uint8_t endIndex = readingsToProcess > 5 ? readingsToProcess - startIndex : readingsToProcess;  // Skip top 20% if enough readings
   
   float sum = 0.0;
   uint8_t count = 0;
