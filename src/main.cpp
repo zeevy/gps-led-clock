@@ -21,6 +21,7 @@
 
 #include <config.h>
 #include "RainEffect.h"
+#include "GpsStabilityFilter.h"
 
 // ============================================================================
 // CONSTANTS AND CONFIGURATION
@@ -41,6 +42,7 @@ const int CHAR_WIDTH = 5 + CHAR_SPACING;
 // ----------------------------------------------------------------------------
 TinyGPSPlus gpsModule;                    // GPS module interface
 bool wasShowingRainEffect = false;        // Track previous rain effect state for efficient screen clearing
+GpsStabilityFilter gpsFilter(gpsModule);  // GPS coordinates stability filter
 
 // ----------------------------------------------------------------------------
 // TIME AND DATE MANAGEMENT
@@ -473,28 +475,61 @@ void animateVerticalSlide(char previousChar, char newChar, int xPosition) {
 void displayGpsLocation() {
   if (!gpsModule.location.isValid()) return;
 
-  // Display latitude (4 decimal places = ~11m accuracy)
-  float lat = gpsModule.location.lat();
+  // Update GPS stability filter with new readings
+  gpsFilter.update();
+
+  // Display latitude using filtered value for stability (4 decimal places = ~11m accuracy)
+  float lat = gpsFilter.getFilteredLatitude();
   int latInt = (int)lat;
   float latDecimal = lat - latInt;
   int latFrac = (int)(latDecimal * GPS_COORD_PRECISION_MULTIPLIER);
+  
+  #if ENABLE_SERIAL_DEBUG
+  // Debug output: show raw vs filtered values
+  Serial.print("LAT - Raw: ");
+  Serial.print(gpsModule.location.lat(), 6);
+  Serial.print(", Filtered: ");
+  Serial.print(lat, 6);
+  Serial.print(", Readings: ");
+  Serial.println(gpsFilter.getTotalReadings());
+  #endif
+  
   snprintf(textScrollBuffer, sizeof(textScrollBuffer), "%s%d.%04d", GPS_LAT_PREFIX, latInt, latFrac);
   scrollTextHorizontally(textScrollBuffer);
 
-  // Display longitude (4 decimal places = ~11m accuracy)
-  float lng = gpsModule.location.lng();
+  // Display longitude using filtered value for stability (4 decimal places = ~11m accuracy)
+  float lng = gpsFilter.getFilteredLongitude();
   int lngInt = (int)lng;
   float lngDecimal = lng - lngInt;
   int lngFrac = (int)(lngDecimal * GPS_COORD_PRECISION_MULTIPLIER);
+  
+  #if ENABLE_SERIAL_DEBUG
+  // Debug output: show raw vs filtered values  
+  Serial.print("LON - Raw: ");
+  Serial.print(gpsModule.location.lng(), 6);
+  Serial.print(", Filtered: ");
+  Serial.println(lng, 6);
+  #endif
+  
   snprintf(textScrollBuffer, sizeof(textScrollBuffer), "%s%d.%04d", GPS_LON_PREFIX, lngInt, lngFrac);
   scrollTextHorizontally(textScrollBuffer);
 
-    // Display altitude if available
+  // Display altitude using filtered value for stability if available
   if (gpsModule.altitude.isValid()) {
-    // Use integer arithmetic since Arduino sprintf doesn't support floating-point
-    double altFeet = gpsModule.altitude.feet();
+    // Use filtered altitude value and integer arithmetic since Arduino sprintf doesn't support floating-point
+    double altFeet = gpsFilter.getFilteredAltitude();
     int altInt = (int)altFeet;
     int altFrac = (int)((altFeet - altInt) * GPS_ALT_PRECISION_MULTIPLIER);
+    
+    #if ENABLE_SERIAL_DEBUG
+    // Debug output: show raw vs filtered altitude
+    Serial.print("ALT - Raw: ");
+    Serial.print(gpsModule.altitude.feet(), 2);
+    Serial.print("ft, Filtered: ");
+    Serial.print(altFeet, 2);
+    Serial.println("ft");
+    #endif
+    
     snprintf(textScrollBuffer, sizeof(textScrollBuffer), "%s%d.%d%s", GPS_ALT_PREFIX, altInt, altFrac, GPS_ALT_SUFFIX);
     scrollTextHorizontally(textScrollBuffer);
   }
