@@ -44,6 +44,13 @@ TinyGPSPlus gpsModule;                    // GPS module interface
 bool wasShowingRainEffect = false;        // Track previous rain effect state for efficient screen clearing
 GpsStabilityFilter gpsFilter(gpsModule);  // GPS coordinates stability filter
 
+// GPS Baud Rate Auto-Detection Variables
+bool gpsBaudDetectionComplete = false;    // Flag to indicate if baud rate detection is complete
+unsigned long currentGpsBaudRate = 115200; // Current GPS baud rate (starts with default)
+int currentBaudRateIndex = 0;             // Index in GPS_BAUD_RATES array for current test
+unsigned long baudTestStartTime = 0;      // Start time for current baud rate test
+int validGpsSentencesCount = 0;           // Count of valid GPS sentences received during test
+
 // ----------------------------------------------------------------------------
 // TIME AND DATE MANAGEMENT
 // ----------------------------------------------------------------------------
@@ -79,8 +86,22 @@ TickTwo dateDisplayTicker(displayDate, DATE_DISPLAY_INTERVAL_MS);     // Timer f
  * @note This function runs once when the Arduino starts up
  */
 void setup() {
-  Serial.begin(115200);
+  // Load saved GPS baud rate or use default (115200)
+  currentGpsBaudRate = loadGpsBaudRate();
+  
+  // Check if we have a valid saved baud rate
+  if (currentGpsBaudRate != 115200) {
+    // We have a previously detected baud rate, mark detection as complete
+    gpsBaudDetectionComplete = true;
+  }
+  
+  Serial.begin(currentGpsBaudRate);
   while (!Serial) delay(100);
+
+  #if ENABLE_SERIAL_DEBUG
+  Serial.print("GPS Clock starting with baud rate: ");
+  Serial.println(currentGpsBaudRate);
+  #endif
 
   // Initialize LED matrix with low brightness
   ledMatrix.setIntensity(LED_BRIGHTNESS_LOW);
@@ -114,9 +135,12 @@ void setup() {
 }
 
 void loop() {
-  while (Serial.available()){
-    char receivedChar = Serial.read();
-    gpsModule.encode(receivedChar);
+  // Only read GPS data normally if baud rate detection is complete
+  if (gpsBaudDetectionComplete) {
+    while (Serial.available()){
+      char receivedChar = Serial.read();
+      gpsModule.encode(receivedChar);
+    }
   }
 
   if (validGpsDateTime()) {
@@ -131,11 +155,14 @@ void loop() {
     gpsTimeUpdateTicker.update();
     dateDisplayTicker.update();
   }else{
-    // GPS signal lost - show rain effect
+    // GPS signal lost - show rain effect and detect GPS baud rate
     if (!rainEffect.isInitialized()) rainEffect.initialize();
     rainEffect.update();
     rainEffect.render();
     wasShowingRainEffect = true;
+    
+    // Perform GPS baud rate detection during rain effect
+    detectGpsBaudRate();
   }
 }
 
@@ -587,5 +614,138 @@ void toggleTimeFormat() {
     scrollTextHorizontally(FORMAT_24H_MESSAGE);
   } else {
     scrollTextHorizontally(FORMAT_12H_MESSAGE);
+  }
+}
+
+/**
+ * @brief Loads the GPS baud rate from EEPROM or uses default
+ * @return The GPS baud rate to use for serial communication
+ */
+unsigned long loadGpsBaudRate() {
+  unsigned long savedBaudRate = 0;
+  EEPROM.get(EEPROM_GPS_BAUD_RATE_ADDR, savedBaudRate);
+  
+  // Validate the saved baud rate against supported rates
+  for (int i = 0; i < GPS_BAUD_RATES_COUNT; i++) {
+    if (savedBaudRate == GPS_BAUD_RATES[i]) {
+      #if ENABLE_SERIAL_DEBUG
+      Serial.print("Loaded GPS baud rate from EEPROM: ");
+      Serial.println(savedBaudRate);
+      #endif
+      return savedBaudRate;
+    }
+  }
+  
+  // If no valid baud rate found in EEPROM, return default (115200)
+  #if ENABLE_SERIAL_DEBUG
+  Serial.println("No valid GPS baud rate in EEPROM, using default: 115200");
+  #endif
+  return 115200;
+}
+
+/**
+ * @brief Saves the detected GPS baud rate to EEPROM
+ * @param baudRate The baud rate to save
+ */
+void saveGpsBaudRate(unsigned long baudRate) {
+  EEPROM.put(EEPROM_GPS_BAUD_RATE_ADDR, baudRate);
+  #if ENABLE_SERIAL_DEBUG
+  Serial.print("Saved GPS baud rate to EEPROM: ");
+  Serial.println(baudRate);
+  #endif
+}
+
+/**
+ * @brief Detects the correct GPS baud rate by testing different rates
+ * Called during rain effect when GPS signal is not valid
+ */
+void detectGpsBaudRate() {
+  // Skip detection if already completed
+  if (gpsBaudDetectionComplete) {
+    return;
+  }
+  
+  unsigned long currentTime = millis();
+  
+  // Initialize baud rate detection on first call
+  if (baudTestStartTime == 0) {
+    baudTestStartTime = currentTime;
+    currentBaudRateIndex = 0;
+    validGpsSentencesCount = 0;
+    
+    // Start with the first baud rate in the list
+    currentGpsBaudRate = GPS_BAUD_RATES[currentBaudRateIndex];
+    Serial.end();
+    delay(100);  // Allow serial to properly close
+    Serial.begin(currentGpsBaudRate);
+    
+    #if ENABLE_SERIAL_DEBUG
+    // Note: Debug output may not work during baud rate changes
+    // This will only show after detection is complete
+    #endif
+    
+    return;
+  }
+  
+  // Read and process GPS data for current baud rate test
+  while (Serial.available()) {
+    char receivedChar = Serial.read();
+    if (gpsModule.encode(receivedChar)) {
+      // Valid GPS sentence received
+      validGpsSentencesCount++;
+    }
+  }
+  
+  // Check if we have enough valid sentences to confirm this baud rate
+  if (validGpsSentencesCount >= GPS_MIN_VALID_SENTENCES) {
+    // Found the correct baud rate!
+    gpsBaudDetectionComplete = true;
+    saveGpsBaudRate(currentGpsBaudRate);
+    
+    #if ENABLE_SERIAL_DEBUG
+    Serial.print("GPS baud rate detected: ");
+    Serial.println(currentGpsBaudRate);
+    Serial.print("Valid sentences received: ");
+    Serial.println(validGpsSentencesCount);
+    #endif
+    
+    return;
+  }
+  
+  // Check if test duration has elapsed for current baud rate
+  if (currentTime - baudTestStartTime >= GPS_BAUD_TEST_DURATION_MS) {
+    // Move to next baud rate
+    currentBaudRateIndex++;
+    
+    if (currentBaudRateIndex >= GPS_BAUD_RATES_COUNT) {
+      // All baud rates tested, none worked - use default and mark complete
+      gpsBaudDetectionComplete = true;
+      currentGpsBaudRate = 115200;  // Default fallback
+      
+      #if ENABLE_SERIAL_DEBUG
+      Serial.println("GPS baud rate detection failed - using default 115200");
+      #endif
+      
+      // Ensure serial is configured with default baud rate
+      Serial.end();
+      delay(100);
+      Serial.begin(currentGpsBaudRate);
+      
+      return;
+    }
+    
+    // Test next baud rate
+    currentGpsBaudRate = GPS_BAUD_RATES[currentBaudRateIndex];
+    validGpsSentencesCount = 0;
+    baudTestStartTime = currentTime;
+    
+    // Reconfigure serial with new baud rate
+    Serial.end();
+    delay(100);  // Allow serial to properly close
+    Serial.begin(currentGpsBaudRate);
+    
+    #if ENABLE_SERIAL_DEBUG
+    // Debug output won't work during baud rate transitions
+    #endif
   }
 }
