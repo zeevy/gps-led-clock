@@ -136,6 +136,7 @@ const int GPS_BAUD_RATES_COUNT = sizeof(GPS_BAUD_RATES) / sizeof(GPS_BAUD_RATES[
 // Display Messages
 const char* WELCOME_MESSAGE         = "Arduino 32x8 GPS Clock";  // Welcome message displayed on startup
 const char* WAITING_FOR_GPS         = "Waiting for GPS Signal...";  // Message while waiting for GPS signal
+const char* DETECTING_GPS_BAUD      = "Detecting GPS Baud Rate...";  // Message during GPS baud rate detection
 
 // Time Format Messages
 const char* FORMAT_12H_MESSAGE      = "12H FORMAT";   // 12-hour format toggle confirmation

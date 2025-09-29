@@ -673,6 +673,10 @@ void detectGpsBaudRate() {
     currentBaudRateIndex = 0;
     validGpsSentencesCount = 0;
     
+    // Show detection message to user
+    ledMatrix.fillScreen(LOW);
+    scrollTextHorizontally(DETECTING_GPS_BAUD);
+    
     // Start with the first baud rate in the list
     currentGpsBaudRate = GPS_BAUD_RATES[currentBaudRateIndex];
     Serial.end();
@@ -701,6 +705,11 @@ void detectGpsBaudRate() {
     // Found the correct baud rate!
     gpsBaudDetectionComplete = true;
     saveGpsBaudRate(currentGpsBaudRate);
+    
+    // Show success message to user
+    char successMessage[50];
+    snprintf(successMessage, sizeof(successMessage), "GPS Baud: %lu", currentGpsBaudRate);
+    scrollTextHorizontally(successMessage);
     
     #if ENABLE_SERIAL_DEBUG
     Serial.print("GPS baud rate detected: ");
