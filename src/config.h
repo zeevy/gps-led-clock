@@ -118,12 +118,25 @@ const char* GPS_ALT_SUFFIX          = "ft";    // Altitude suffix (feet)
 #define GPS_ALT_PRECISION_MULTIPLIER    10       // For 1 decimal place
 
 // ============================================================================
+// GPS BAUD RATE AUTO-DETECTION CONFIGURATION
+// ============================================================================
+
+// GPS Baud rates to test during auto-detection
+const unsigned long GPS_BAUD_RATES[] = {9600, 38400, 57600, 115200};
+const int GPS_BAUD_RATES_COUNT = sizeof(GPS_BAUD_RATES) / sizeof(GPS_BAUD_RATES[0]);
+
+// GPS baud rate detection timing
+#define GPS_BAUD_TEST_DURATION_MS       3000    // Time to test each baud rate (3 seconds)
+#define GPS_MIN_VALID_SENTENCES         3       // Minimum valid GPS sentences to confirm baud rate
+
+// ============================================================================
 // TEXT AND MESSAGES
 // ============================================================================
 
 // Display Messages
 const char* WELCOME_MESSAGE         = "Arduino 32x8 GPS Clock";  // Welcome message displayed on startup
 const char* WAITING_FOR_GPS         = "Waiting for GPS Signal...";  // Message while waiting for GPS signal
+const char* DETECTING_GPS_BAUD      = "Detecting GPS Baud Rate...";  // Message during GPS baud rate detection
 
 // Time Format Messages
 const char* FORMAT_12H_MESSAGE      = "12H FORMAT";   // 12-hour format toggle confirmation
@@ -143,6 +156,7 @@ const char* MONTH_NAMES[12]         = { "JAN", "FEB", "MAR", "APR", "MAY", "JUN"
 // EEPROM addresses for power cycle detection and time format storage
 #define EEPROM_TIME_FORMAT_ADDR    0    // 1 byte: 0=12H, 1=24H
 #define EEPROM_POWER_CYCLE_ADDR    1    // 4 bytes: power cycle count
+#define EEPROM_GPS_BAUD_RATE_ADDR  5    // 4 bytes: GPS baud rate (9600, 38400, 57600, 115200)
 #define POWER_CYCLE_THRESHOLD      5    // Number of cycles needed to toggle format
 
 // ============================================================================
@@ -192,6 +206,24 @@ void displayDate();
  * Called after date display to show current GPS coordinates
  */
 void displayGpsLocation();
+
+/**
+ * @brief Detects the correct GPS baud rate by testing different rates
+ * Called during rain effect when GPS signal is not valid
+ */
+void detectGpsBaudRate();
+
+/**
+ * @brief Loads the GPS baud rate from EEPROM or uses default
+ * @return The GPS baud rate to use for serial communication
+ */
+unsigned long loadGpsBaudRate();
+
+/**
+ * @brief Saves the detected GPS baud rate to EEPROM
+ * @param baudRate The baud rate to save
+ */
+void saveGpsBaudRate(unsigned long baudRate);
 
 /**
  * @brief Configures LED matrix module positions and rotations
