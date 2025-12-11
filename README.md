@@ -2,6 +2,8 @@
 
 A sophisticated Arduino-based GPS clock that displays time on a 32x8 LED matrix with beautiful animations and effects. The clock automatically synchronizes with GPS time and includes a rain effect animation when GPS signal is lost.
 
+<img width="2241" height="805" alt="image" src="https://github.com/user-attachments/assets/65b796b9-a7a7-471e-b6f8-0650e257d205" />
+
 ## Features
 
 - **GPS Time Synchronization**: Automatically syncs with GPS time (UTC) with timezone adjustment and signal quality monitoring
@@ -43,6 +45,12 @@ A sophisticated Arduino-based GPS clock that displays time on a 32x8 LED matrix 
 | **LED Matrix CS**   | Pin 10 (SS)        | Chip select         |
 | **LED Matrix VCC**  | 5V                 | Power supply        |
 | **LED Matrix GND**  | GND                | Ground              |
+
+<img width="2280" height="1386" alt="image" src="https://github.com/user-attachments/assets/2859d131-e09c-44f3-abb6-3fb95c12ad07" />
+
+https://github.com/user-attachments/assets/0466696c-467c-4d51-b680-a392c1aeb819
+
+https://github.com/user-attachments/assets/89aafe1a-3b30-45a1-8af5-c8f70775d7f9
 
 ## Software Requirements
 
