@@ -1,0 +1,63 @@
+name: Feature request
+description: Suggest a new feature or enhancement for the GPS clock
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an enhancement! Keep in mind this project targets an Arduino Nano (2KB SRAM, 32KB flash) and a fixed 32x8 LED matrix.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What problem does this feature solve? Why is it valuable?
+      placeholder: "Currently the clock cannot..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe what you want to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you have thought about.
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - Display / animation
+        - GPS / time handling
+        - Configuration / EEPROM
+        - Power / brightness
+        - Wokwi simulator
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Hardware impact
+      description: Does this require new components, more memory, different pins, etc.?
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched existing issues / discussions and did not find a duplicate
+          required: true
+        - label: I have considered the Arduino Nano memory constraints (2KB SRAM, 32KB flash)
+          required: false
