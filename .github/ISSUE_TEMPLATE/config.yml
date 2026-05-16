@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and discussions
+    url: https://github.com/zeevy/gps-led-clock/discussions
+    about: Have a question, need help wiring it up, or want to share your build? Start a discussion.

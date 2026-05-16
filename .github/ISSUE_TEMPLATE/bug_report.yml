@@ -1,0 +1,101 @@
+name: Bug report
+description: Report a bug, defect, or unexpected behavior in the GPS clock
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill out the sections below so we can reproduce and investigate.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: A clear and concise description of the bug.
+      placeholder: "When GPS is connected, the clock shows..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Power on the clock
+        2. Wait for GPS lock
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: I expected the clock to show...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: Instead, the clock showed...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Where did you observe this?
+      options:
+        - Real hardware (Arduino Nano + GPS)
+        - Wokwi simulator
+        - Both
+    validations:
+      required: true
+
+  - type: input
+    id: gps-module
+    attributes:
+      label: GPS module
+      description: Which GPS module are you using? (e.g. NEO-6M, NEO-7M, NEO-M8N)
+      placeholder: NEO-6M
+
+  - type: input
+    id: firmware-version
+    attributes:
+      label: Firmware version / commit
+      description: Output of `git rev-parse --short HEAD` or release tag
+      placeholder: e.g. b8bfb72 or v1.0.0
+
+  - type: input
+    id: timezone
+    attributes:
+      label: Timezone configured
+      description: Value of TIMEZONE_OFFSET_HOURS / TIMEZONE_OFFSET_MINUTES in src/config.h
+      placeholder: e.g. +5:30 (IST)
+
+  - type: textarea
+    id: serial-log
+    attributes:
+      label: Serial monitor output
+      description: If ENABLE_SERIAL_DEBUG is true, paste relevant serial output here.
+      render: shell
+
+  - type: textarea
+    id: photos
+    attributes:
+      label: Photos / video
+      description: Attach a photo or short video of the LED matrix if visual.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched existing issues and did not find a duplicate
+          required: true
+        - label: I am running the latest commit on master
+          required: false
