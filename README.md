@@ -50,8 +50,6 @@ A sophisticated Arduino-based GPS clock that displays time on a 32x8 LED matrix 
 
 https://github.com/user-attachments/assets/0466696c-467c-4d51-b680-a392c1aeb819
 
-https://github.com/user-attachments/assets/89aafe1a-3b30-45a1-8af5-c8f70775d7f9
-
 ## Software Requirements
 
 - **PlatformIO** (recommended) or Arduino IDE
