@@ -1,0 +1,6 @@
+{
+  "name": "GPS Simulator (NEO-6M)",
+  "author": "zeevy",
+  "pins": ["TX", "RX", "VCC", "GND"],
+  "controls": []
+}
