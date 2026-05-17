@@ -2,3 +2,7 @@
 version = 1
 firmware = '.pio/build/nanoatmega328/firmware.hex'
 elf = '.pio/build/nanoatmega328/firmware.elf'
+
+[[chip]]
+name = 'gps-simulator'
+binary = 'chips/gps-simulator.chip.wasm'

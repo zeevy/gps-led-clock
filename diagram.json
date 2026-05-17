@@ -3,22 +3,38 @@
   "author": "zeevy",
   "editor": "wokwi",
   "parts": [
-    { "type": "wokwi-arduino-nano", "id": "NANO", "top": -120, "left": -10.1, "attrs": {} },
+    {
+      "type": "wokwi-arduino-nano",
+      "id": "NANO",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
     {
       "type": "wokwi-max7219-matrix",
       "id": "M1",
-      "top": -278.2,
-      "left": -21.04,
+      "top": -182.4,
+      "left": -28.8,
       "rotate": 180,
       "attrs": { "chain": "4", "layout": "fc16" }
+    },
+    {
+      "type": "chip-gps-simulator",
+      "id": "GPS",
+      "top": 19.2,
+      "left": 259.2,
+      "attrs": {}
     }
   ],
   "connections": [
-    [ "NANO:VIN", "M1:V+", "red", [ "v19.2", "h-172.8", "v-182.4" ] ],
-    [ "NANO:GND.1", "M1:GND", "black", [ "v28.8", "h-172.8", "v-201.6" ] ],
+    [ "NANO:VIN", "M1:V+", "red", [ "v19.2", "h-172.8", "v-192" ] ],
+    [ "NANO:GND.1", "M1:GND", "black", [ "v28.8", "h-182.4", "v-211.2" ] ],
     [ "NANO:11", "M1:DIN", "orange", [ "v-57.6", "h-67.2", "v-67.2" ] ],
-    [ "NANO:10", "M1:CS", "yellow", [ "v-48", "h-86.4", "v-86.4" ] ],
-    [ "NANO:13", "M1:CLK", "green", [ "v9.6", "h-76.8", "v-211.2" ] ]
+    [ "NANO:10", "M1:CS", "yellow", [ "v-48", "h-76.8", "v-76.8" ] ],
+    [ "NANO:13", "M1:CLK", "green", [ "v9.6", "h-86.4", "v-220.8" ] ],
+    [ "GPS:TX", "NANO:0", "purple", [ "h-57.6", "v115.2", "h-67.2" ] ],
+    [ "GPS:VCC", "NANO:5V", "red", [ "h57.6", "v96", "h-172.8" ] ],
+    [ "GPS:GND", "NANO:GND.1", "black", [ "h57.6", "v105.6", "h-182.4" ] ]
   ],
   "dependencies": {}
 }
