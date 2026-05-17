@@ -1,0 +1,110 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.platformio/.cache
+            ~/.cache/pip
+          key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+
+      - name: Install PlatformIO
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade platformio
+
+      - name: Build firmware
+        run: pio run
+
+      - name: Stage release artifacts
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          mkdir -p release
+          cp .pio/build/nanoatmega328/firmware.hex "release/gps-led-clock-${TAG}.hex"
+          cp .pio/build/nanoatmega328/firmware.elf "release/gps-led-clock-${TAG}.elf"
+          ls -lh release/
+
+      - name: Build release notes
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          PREV_TAG=$(git tag --sort=-v:refname | grep -v "^${TAG}$" | head -n1 || true)
+          {
+            echo "## Flashing instructions"
+            echo
+            echo "Download \`gps-led-clock-${TAG}.hex\` below and flash to an Arduino Nano (ATmega328P)."
+            echo
+            echo "**Disconnect the GPS module's TX from Arduino pin 0 (RX0) before flashing**, otherwise the upload will fail because GPS shares the hardware UART."
+            echo
+            echo "### avrdude (CLI)"
+            echo
+            echo '```'
+            echo "avrdude -c arduino -p atmega328p -P /dev/ttyUSB0 -b 115200 -U flash:w:gps-led-clock-${TAG}.hex"
+            echo '```'
+            echo
+            echo "Use \`-b 57600\` if your Nano has the older bootloader. Replace \`/dev/ttyUSB0\` with your serial port (\`/dev/tty.usbserial-*\` on macOS, \`COM3\` etc. on Windows)."
+            echo
+            echo "### Arduino IDE"
+            echo
+            echo "1. Set Board to *Arduino Nano*, Processor to *ATmega328P* (or *ATmega328P (Old Bootloader)* for older boards)."
+            echo "2. *Sketch > Upload Using Programmer* with the downloaded \`.hex\`."
+            echo
+            echo "### xLoader / AVRDUDESS (Windows GUI)"
+            echo
+            echo "Select the \`.hex\` file, device *ATmega328*, baud *115200* (or *57600* for old bootloader)."
+            echo
+            echo "## Artifacts"
+            echo
+            echo "- \`gps-led-clock-${TAG}.hex\` - flash image (use this for normal flashing)"
+            echo "- \`gps-led-clock-${TAG}.elf\` - executable with symbols (for debugging or \`avr-objdump\`)"
+            echo
+            if [ -n "$PREV_TAG" ]; then
+              echo "## Changes since ${PREV_TAG}"
+              echo
+              git log "${PREV_TAG}..${TAG}" --pretty=format:'- %s' --no-merges
+              echo
+            fi
+          } > release-notes.md
+          cat release-notes.md
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "$TAG" == *-* ]]; then
+            PRERELEASE_FLAG="--prerelease"
+          else
+            PRERELEASE_FLAG=""
+          fi
+          gh release create "$TAG" \
+            "release/gps-led-clock-${TAG}.hex" \
+            "release/gps-led-clock-${TAG}.elf" \
+            --title "$TAG" \
+            --notes-file release-notes.md \
+            $PRERELEASE_FLAG
