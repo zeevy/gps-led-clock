@@ -56,6 +56,22 @@ void RainEffect::initialize() {
 }
 
 /**
+ * @brief Reset the rain effect so it starts fresh on next initialize()
+ *
+ * Deactivates all raindrops and ground flashes, and clears the
+ * initialized flag so the effect can be re-initialized cleanly.
+ */
+void RainEffect::reset() {
+  for (int i = 0; i < MAX_RAINDROPS; i++) {
+    raindropArray[i].isActive = false;
+  }
+  for (int i = 0; i < MAX_GROUND_FLASHES; i++) {
+    groundFlashArray[i].isActive = false;
+  }
+  isInitializedFlag = false;
+}
+
+/**
  * @brief Update the rain effect logic
  * 
  * This method handles the main rain effect logic including:

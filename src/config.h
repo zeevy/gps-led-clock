@@ -57,8 +57,8 @@
 #define MATRIX_TOTAL_MODULES_Y      1    // Number of LED matrix modules vertically
 
 // LED Matrix Brightness Levels
-const int LED_BRIGHTNESS_HIGH       = 10;  // High brightness level (0-15), used during day time
-const int LED_BRIGHTNESS_LOW        = 5;  // Low brightness level (0-15), used during night time
+static const int LED_BRIGHTNESS_HIGH       = 10;  // High brightness level (0-15), used during day time
+static const int LED_BRIGHTNESS_LOW        = 5;  // Low brightness level (0-15), used during night time
 
 // ============================================================================
 // TIMING CONFIGURATION
@@ -69,10 +69,10 @@ const int LED_BRIGHTNESS_LOW        = 5;  // Low brightness level (0-15), used d
 #define DATE_DISPLAY_INTERVAL_MS    (2 * 60 * 1000UL + 30 * 1000UL)  // Interval to display date (2 minutes 30 seconds)
 
 // GPS Signal Management
-const unsigned long GPS_SIGNAL_TIMEOUT_MS = 30000UL;  // GPS signal timeout (60 seconds) - rain effect shown if exceeded
+const unsigned long GPS_SIGNAL_TIMEOUT_MS = 30000UL;  // GPS signal timeout (30 seconds) - rain effect shown if exceeded
 
 // Colon Blink Positions for Time Separator (x, y coordinates)
-byte COLON_BLINK_POSITIONS[][2] = {
+static const byte COLON_BLINK_POSITIONS[][2] = {
   {14, 3}, {15, 3},  // Top row of colon
   {14, 4}, {15, 4}   // Bottom row of colon
 };
@@ -108,10 +108,10 @@ byte COLON_BLINK_POSITIONS[][2] = {
 // ============================================================================
 
 // GPS Location Display Messages
-const char* GPS_LAT_PREFIX          = "LAT:";  // Latitude prefix
-const char* GPS_LON_PREFIX          = "LON:";  // Longitude prefix
-const char* GPS_ALT_PREFIX          = "ALT:";  // Altitude prefix
-const char* GPS_ALT_SUFFIX          = "ft";    // Altitude suffix (feet)
+static const char* GPS_LAT_PREFIX          = "LAT:";  // Latitude prefix
+static const char* GPS_LON_PREFIX          = "LON:";  // Longitude prefix
+static const char* GPS_ALT_PREFIX          = "ALT:";  // Altitude prefix
+static const char* GPS_ALT_SUFFIX          = "ft";    // Altitude suffix (feet)
 
 // GPS Coordinate Precision Constants
 #define GPS_COORD_PRECISION_MULTIPLIER  10000    // For 4 decimal places (~11m accuracy)
@@ -122,19 +122,19 @@ const char* GPS_ALT_SUFFIX          = "ft";    // Altitude suffix (feet)
 // ============================================================================
 
 // Display Messages
-const char* WELCOME_MESSAGE         = "Arduino 32x8 GPS Clock";  // Welcome message displayed on startup
-const char* WAITING_FOR_GPS         = "Waiting for GPS Signal...";  // Message while waiting for GPS signal
+static const char* WELCOME_MESSAGE         = "Arduino 32x8 GPS Clock";  // Welcome message displayed on startup
+static const char* WAITING_FOR_GPS         = "Waiting for GPS Signal...";  // Message while waiting for GPS signal
 
 // Time Format Messages
-const char* FORMAT_12H_MESSAGE      = "12H FORMAT";   // 12-hour format toggle confirmation
-const char* FORMAT_24H_MESSAGE      = "24H FORMAT";   // 24-hour format toggle confirmation
+static const char* FORMAT_12H_MESSAGE      = "12H FORMAT";   // 12-hour format toggle confirmation
+static const char* FORMAT_24H_MESSAGE      = "24H FORMAT";   // 24-hour format toggle confirmation
 
 // Text Display Configuration
-const int TEXT_BUFFER_SIZE          = 75;  // Buffer size for scrolling text display
+static const int TEXT_BUFFER_SIZE          = 75;  // Buffer size for scrolling text display
 
 // Date Formatting Arrays
-const char* WEEKDAY_NAMES[7]        = { "SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT" };  // Abbreviated weekday names
-const char* MONTH_NAMES[12]         = { "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" };  // Abbreviated month names
+static const char* WEEKDAY_NAMES[7]        = { "SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT" };  // Abbreviated weekday names
+static const char* MONTH_NAMES[12]         = { "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" };  // Abbreviated month names
 
 // ============================================================================
 // POWER CYCLE DETECTION CONFIGURATION

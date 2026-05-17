@@ -123,6 +123,14 @@ public:
   void render();
   
   /**
+   * @brief Reset the rain effect so it starts fresh on next initialize()
+   *
+   * Deactivates all raindrops and ground flashes, and clears the
+   * initialized flag so the effect can be re-initialized cleanly.
+   */
+  void reset();
+
+  /**
    * @brief Check if the rain effect is initialized
    * @return True if initialized, false otherwise
    */
