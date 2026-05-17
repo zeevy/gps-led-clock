@@ -124,6 +124,7 @@ void loop() {
     // This prevents rain drops from being visible with time display
     if (wasShowingRainEffect) {
       ledMatrix.fillScreen(LOW);
+      rainEffect.reset();
       previousTimeDigits = TimeDigits();
       wasShowingRainEffect = false;
     }
@@ -283,6 +284,11 @@ void scrollTextHorizontally(const char* message) {
 
   // Scroll text from right edge to left edge
   for (int xPosition = ledMatrix.width(); xPosition >= -totalTextWidth; xPosition--) {
+    // Drain serial buffer to prevent GPS data loss during long scrolls
+    while (Serial.available()) {
+      gpsModule.encode(Serial.read());
+    }
+
     // Clear display and set cursor position
     ledMatrix.fillScreen(LOW);
     ledMatrix.setCursor(xPosition, 0);
@@ -481,9 +487,8 @@ void displayGpsLocation() {
   // Display latitude using filtered value for stability (4 decimal places = ~11m accuracy)
   float lat = gpsFilter.getFilteredLatitude();
   int latInt = (int)lat;
-  float latDecimal = lat - latInt;
-  int latFrac = (int)(latDecimal * GPS_COORD_PRECISION_MULTIPLIER);
-  
+  int latFrac = (int)(fabs(lat - latInt) * GPS_COORD_PRECISION_MULTIPLIER);
+
   #if ENABLE_SERIAL_DEBUG
   // Debug output: show raw vs filtered values
   Serial.print("LAT - Raw: ");
@@ -493,24 +498,23 @@ void displayGpsLocation() {
   Serial.print(", Readings: ");
   Serial.println(gpsFilter.getTotalReadings());
   #endif
-  
+
   snprintf(textScrollBuffer, sizeof(textScrollBuffer), "%s%d.%04d", GPS_LAT_PREFIX, latInt, latFrac);
   scrollTextHorizontally(textScrollBuffer);
 
   // Display longitude using filtered value for stability (4 decimal places = ~11m accuracy)
   float lng = gpsFilter.getFilteredLongitude();
   int lngInt = (int)lng;
-  float lngDecimal = lng - lngInt;
-  int lngFrac = (int)(lngDecimal * GPS_COORD_PRECISION_MULTIPLIER);
-  
+  int lngFrac = (int)(fabs(lng - lngInt) * GPS_COORD_PRECISION_MULTIPLIER);
+
   #if ENABLE_SERIAL_DEBUG
-  // Debug output: show raw vs filtered values  
+  // Debug output: show raw vs filtered values
   Serial.print("LON - Raw: ");
   Serial.print(gpsModule.location.lng(), 6);
   Serial.print(", Filtered: ");
   Serial.println(lng, 6);
   #endif
-  
+
   snprintf(textScrollBuffer, sizeof(textScrollBuffer), "%s%d.%04d", GPS_LON_PREFIX, lngInt, lngFrac);
   scrollTextHorizontally(textScrollBuffer);
 
@@ -519,8 +523,8 @@ void displayGpsLocation() {
     // Use filtered altitude value and integer arithmetic since Arduino sprintf doesn't support floating-point
     double altFeet = gpsFilter.getFilteredAltitude();
     int altInt = (int)altFeet;
-    int altFrac = (int)((altFeet - altInt) * GPS_ALT_PRECISION_MULTIPLIER);
-    
+    int altFrac = (int)(fabs(altFeet - altInt) * GPS_ALT_PRECISION_MULTIPLIER);
+
     #if ENABLE_SERIAL_DEBUG
     // Debug output: show raw vs filtered altitude
     Serial.print("ALT - Raw: ");
@@ -529,7 +533,7 @@ void displayGpsLocation() {
     Serial.print(altFeet, 2);
     Serial.println("ft");
     #endif
-    
+
     snprintf(textScrollBuffer, sizeof(textScrollBuffer), "%s%d.%d%s", GPS_ALT_PREFIX, altInt, altFrac, GPS_ALT_SUFFIX);
     scrollTextHorizontally(textScrollBuffer);
   }
@@ -554,7 +558,12 @@ void checkPowerCycles() {
   // Read cycle count from EEPROM
   unsigned long cycleCount = 0;
   EEPROM.get(EEPROM_POWER_CYCLE_ADDR, cycleCount);
-  
+
+  // Validate against uninitialized EEPROM (0xFFFFFFFF) or corrupt values
+  if (cycleCount > POWER_CYCLE_THRESHOLD * 2) {
+    cycleCount = 0;
+  }
+
   // Increment cycle count
   cycleCount++;
   EEPROM.put(EEPROM_POWER_CYCLE_ADDR, cycleCount);
@@ -574,8 +583,9 @@ void checkPowerCycles() {
  * @note Shows confirmation message on display
  */
 void toggleTimeFormat() {
-  bool currentFormat = EEPROM.read(EEPROM_TIME_FORMAT_ADDR);
-  bool newFormat = !currentFormat;
+  uint8_t currentFormat = EEPROM.read(EEPROM_TIME_FORMAT_ADDR);
+  // Treat any value other than 1 as 12H (0), handles uninitialized EEPROM (0xFF)
+  bool newFormat = (currentFormat != 1);
 
   EEPROM.write(EEPROM_TIME_FORMAT_ADDR, newFormat);
 
