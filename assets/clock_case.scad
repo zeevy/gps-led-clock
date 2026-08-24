@@ -41,9 +41,15 @@ wall_thickness        = 3.5;    // Thickness of case walls
 screen_thickness      = 0.64;   // Thickness of screen/display area
 
 // LED Matrix Display dimensions (MAX7219 4x configuration)
-led_matrix_length     = 128 + 1;  // Length of LED matrix + clearance
-led_matrix_width      = 32 + 1;   // Width of LED matrix + clearance
-led_matrix_height     = 15;       // Height of LED matrix
+// Module is 128 x 33 x 15 mm (L x W x H) per the Handson Technology DSP-1172
+// datasheet. Each dimension below is the module size plus a print clearance;
+// the base numbers must stay equal to the datasheet, not to the 32 mm the
+// matrix area alone measures, or the pocket ends up a press fit.
+led_matrix_clearance_xy = 1.0;   // Clearance added to length and width
+led_matrix_clearance_z  = 0.5;   // Clearance added to height
+led_matrix_length     = 128 + led_matrix_clearance_xy;  // Module length + clearance
+led_matrix_width      = 33  + led_matrix_clearance_xy;  // Module width + clearance
+led_matrix_height     = 15  + led_matrix_clearance_z;   // Module height + clearance
 
 // Main case dimensions
 case_length           = 150;    // Total length of the case
