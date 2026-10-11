@@ -22,7 +22,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.x'
+          # pioarduino 55.03.312 accepts Python 3.10 to 3.14 only
+          python-version: '3.13'
 
       - name: Cache PlatformIO
         uses: actions/cache@v5
@@ -44,6 +45,9 @@ jobs:
 
       - name: Unit tests on the PC
         run: pio test -e native
+
+      - name: Build the other boards
+        run: pio run -e d1_mini -e esp32dev -e lolin_s2_mini -e esp32s3 -e esp32c3 -e esp32c6
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v7

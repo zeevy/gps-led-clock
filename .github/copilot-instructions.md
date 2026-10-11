@@ -198,7 +198,7 @@ The project uses these libraries (auto-installed by PlatformIO):
 - **Updates**: Library updates require internet connectivity
 
 ### CI
-- **GitHub workflows**: `build.yml` builds the Nano firmware and runs the PC unit tests on every push and PR; `release.yml` publishes the firmware on `v*` tags
+- **GitHub workflows**: `build.yml` builds the Nano firmware, runs the PC unit tests and builds the D1 mini and ESP32 envs on every push and PR; `release.yml` publishes the Nano firmware on `v*` tags
 - **Manual testing required**: Display and GPS behaviour still needs the Wokwi simulator or real hardware
 
 ## Quick Reference Commands

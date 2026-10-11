@@ -47,6 +47,22 @@ A sophisticated Arduino-based GPS clock that displays time on a 32x8 LED matrix 
 | **LED Matrix VCC**  | 5V                 | Power supply        |
 | **LED Matrix GND**  | GND                | Ground              |
 
+### Other boards
+
+The same firmware builds for these boards. Pick the env with `pio run -e <env> -t upload`.
+
+| Board | Env | GPS TX to | Matrix DIN | Matrix CLK | Matrix CS |
+|---|---|---|---|---|---|
+| Arduino Nano | `nanoatmega328` | D8 | D11 | D13 | D10 |
+| Wemos D1 mini | `d1_mini` | D2 | D7 | D5 | D8 |
+| ESP32 DevKit V1 | `esp32dev` | GPIO16 | GPIO23 | GPIO18 | GPIO5 |
+| Lolin S2 mini | `lolin_s2_mini` | GPIO4 | GPIO11 | GPIO7 | GPIO12 |
+| ESP32-S3 DevKitC-1 | `esp32s3` | GPIO6 | GPIO11 | GPIO12 | GPIO10 |
+| ESP32-C3 super mini | `esp32c3` | GPIO3 | GPIO6 | GPIO4 | GPIO7 |
+| ESP32-C6 DevKitC-1 | `esp32c6` | GPIO2 | GPIO19 | GPIO21 | GPIO18 |
+
+The D1 mini and ESP32 boards use 3.3 V logic, but the MAX7219 needs at least 3.5 V for a logic high at 5 V supply. Put a 74AHCT125 (or 74HCT125) powered from 5 V on DIN, CLK and CS, and power the matrix from 5 V. The GPS TX can go straight to the board.
+
 <img width="2280" height="1386" alt="image" src="https://github.com/user-attachments/assets/2859d131-e09c-44f3-abb6-3fb95c12ad07" />
 
 https://github.com/user-attachments/assets/0466696c-467c-4d51-b680-a392c1aeb819
@@ -54,14 +70,14 @@ https://github.com/user-attachments/assets/0466696c-467c-4d51-b680-a392c1aeb819
 ## Software Requirements
 
 - **PlatformIO** (recommended) or Arduino IDE
-- **Arduino AVR Boards** package
+- **Arduino AVR Boards** package (ESP8266 and ESP32 boards: PlatformIO installs their platforms)
 - Required libraries (automatically installed with PlatformIO):
   - TinyGPSPlus
   - Adafruit GFX Library
   - Max72xxPanel
   - RTClib
   - TickTwo
-  - NeoSWSerial
+  - NeoSWSerial (Nano only)
 
 ## Installation & Setup
 

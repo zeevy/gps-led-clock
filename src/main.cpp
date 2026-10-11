@@ -81,7 +81,8 @@ TickTwo dateDisplayTicker(displayDate, DATE_DISPLAY_INTERVAL_MS);     // Timer f
  */
 void setup() {
   Serial.begin(115200);
-  gpsSerial().begin(GPS_BAUD);
+  gpsBegin();
+  storageBegin();
 
   // Initialize LED matrix with low brightness
   spiBegin();
@@ -109,6 +110,7 @@ void setup() {
 
   // Reset power cycle counter after welcome message
   EEPROM.put(EEPROM_POWER_CYCLE_ADDR, (uint32_t)0);
+  storageCommit();
 
   gpsTimeUpdateTicker.start();
   dateDisplayTicker.start();
@@ -152,7 +154,9 @@ void readGps() {
  *
  * The software serial port has a 64 byte receive buffer, which fills in
  * about 67 ms at 9600 baud. Every animation delay goes through here, so
- * no NMEA bytes are lost while the display is busy.
+ * no NMEA bytes are lost while the display is busy. delay(1), not
+ * yield(), so lower priority tasks (the ESP32 idle task) also run during
+ * a long scroll.
  *
  * @param ms Time to wait in milliseconds
  */
@@ -160,7 +164,7 @@ void waitMs(unsigned long ms) {
   unsigned long start = millis();
   do {
     readGps();
-    yield();
+    delay(1);
   } while (millis() - start < ms);
 }
 
@@ -282,7 +286,7 @@ void configureLedMatrix() {
  * 
  * @param message The text message to scroll (null-terminated string)
  * 
- * @note The function adds a space at the end of the message for better readability
+ * @note The scroll runs one character width past the end of the text, like a trailing space
  * @note Scroll speed is controlled by the waitMs(35) - adjust for different speeds
  * @note This function resets the previousTimeDigits to prevent animation conflicts
  * 
@@ -295,11 +299,9 @@ void scrollTextHorizontally(const char* message) {
   Serial.println(message);
   #endif
 
-  // Prepare text buffer with trailing space for better readability
-  snprintf(textScrollBuffer, sizeof(textScrollBuffer), "%s ", message);
-
-  // Calculate total text width in pixels
-  int totalTextWidth = strlen(textScrollBuffer) * CHAR_WIDTH;
+  // Text width in pixels, plus one character as a trailing space. The
+  // message is printed as it is: callers often pass textScrollBuffer itself.
+  int totalTextWidth = (strlen(message) + 1) * CHAR_WIDTH;
   
   // Ensure minimum scroll distance is at least the display width
   if (totalTextWidth < ledMatrix.width()) {
@@ -311,7 +313,7 @@ void scrollTextHorizontally(const char* message) {
     // Clear display and set cursor position
     ledMatrix.fillScreen(LOW);
     ledMatrix.setCursor(xPosition, 0);
-    ledMatrix.print(textScrollBuffer);
+    ledMatrix.print(message);
     ledMatrix.write();
     waitMs(35); // Control scroll speed (35ms per frame)
   }
@@ -485,6 +487,7 @@ void checkPowerCycles() {
   EEPROM.get(EEPROM_POWER_CYCLE_ADDR, cycleCount);
   cycleCount = nextBootCount(cycleCount, POWER_CYCLE_THRESHOLD);
   EEPROM.put(EEPROM_POWER_CYCLE_ADDR, cycleCount);
+  storageCommit();
 
   // If threshold reached, toggle time format
   if (cycleCount > POWER_CYCLE_THRESHOLD) toggleTimeFormat();
@@ -506,6 +509,7 @@ void toggleTimeFormat() {
   bool newFormat = (currentFormat != 1);
 
   EEPROM.write(EEPROM_TIME_FORMAT_ADDR, newFormat);
+  storageCommit();
 
   // Update cached format for immediate effect
   is24Hour = newFormat;
