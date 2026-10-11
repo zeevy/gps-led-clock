@@ -34,6 +34,12 @@
 #define OP_SHUTDOWN    12
 #define OP_DISPLAYTEST 15
 
+// SPI clock. The MAX7219 accepts up to 10 MHz. 4 MHz is the AVR core
+// default; lower it with -D MAX72XX_SPI_HZ=... for long wires or chains.
+#ifndef MAX72XX_SPI_HZ
+#define MAX72XX_SPI_HZ 4000000
+#endif
+
 Max72xxPanel::Max72xxPanel(byte csPin, byte hDisplays, byte vDisplays) : Adafruit_GFX(hDisplays << 3, vDisplays << 3) {
 
   Max72xxPanel::SPI_CS = csPin;
@@ -51,13 +57,15 @@ Max72xxPanel::Max72xxPanel(byte csPin, byte hDisplays, byte vDisplays) : Adafrui
   	matrixRotation[display] = 0;
   }
 
-  SPI.begin();
-//SPI.setBitOrder(MSBFIRST);
-//SPI.setDataMode(SPI_MODE0);
-  pinMode(SPI_CS, OUTPUT);
-
-  // Clear the screen
+  // Clear the screen buffer
   fillScreen(0);
+}
+
+void Max72xxPanel::begin() {
+  // No SPI or pin access in the constructor: a global panel object is
+  // built before setup(), and on some cores before the SPI object itself.
+  pinMode(SPI_CS, OUTPUT);
+  digitalWrite(SPI_CS, HIGH);
 
   // Make sure we are not in test mode
   spiTransfer(OP_DISPLAYTEST, 0);
@@ -67,6 +75,10 @@ Max72xxPanel::Max72xxPanel(byte csPin, byte hDisplays, byte vDisplays) : Adafrui
 
   // We don't want the multiplexer to decode segments for us
   spiTransfer(OP_DECODEMODE, 0);
+
+  // The digit registers hold random data after power on, so send the
+  // blank buffer before the display is switched on
+  write();
 
   // Enable display
   shutdown(false);
@@ -176,6 +188,8 @@ void Max72xxPanel::spiTransfer(byte opcode, byte data) {
 	// If opcode <= OP_DIGIT7, display the column with data in our buffer for all displays.
 	// We do not support (nor need) to use the OP_NOOP opcode.
 
+	SPI.beginTransaction(SPISettings(MAX72XX_SPI_HZ, MSBFIRST, SPI_MODE0));
+
 	// Enable the line
 	digitalWrite(SPI_CS, LOW);
 
@@ -192,4 +206,6 @@ void Max72xxPanel::spiTransfer(byte opcode, byte data) {
 
 	// Latch the data onto the display(s)
 	digitalWrite(SPI_CS, HIGH);
+
+	SPI.endTransaction();
 }

@@ -14,7 +14,7 @@
 
 #include "wokwi-api.h"
 
-#define GPS_BAUD_RATE       115200
+#define GPS_BAUD_RATE       9600   /* NEO-6M factory default */
 #define FIX_DELAY_SECONDS   5
 
 static uart_dev_t uart;
@@ -61,22 +61,24 @@ static uint8_t nmea_checksum(const char *body) {
 
 static const char hex[] = "0123456789ABCDEF";
 
-/* Send a complete NMEA sentence: $<body>*<checksum>\r\n */
-static void send_nmea(const char *body) {
-  char buf[128];
+/* Append a complete NMEA sentence to out: $<body>*<checksum>\r\n */
+static void append_nmea(char *out, const char *body) {
   uint8_t cs = nmea_checksum(body);
 
-  buf[0] = '$';
-  buf[1] = '\0';
-  str_append(buf, body);
-  append_char(buf, '*');
-  append_char(buf, hex[(cs >> 4) & 0x0F]);
-  append_char(buf, hex[cs & 0x0F]);
-  append_char(buf, '\r');
-  append_char(buf, '\n');
-
-  uart_write(uart, (uint8_t *)buf, str_len(buf));
+  append_char(out, '$');
+  str_append(out, body);
+  append_char(out, '*');
+  append_char(out, hex[(cs >> 4) & 0x0F]);
+  append_char(out, hex[cs & 0x0F]);
+  append_char(out, '\r');
+  append_char(out, '\n');
 }
+
+/*
+ * All sentences of one second go out in a single uart_write(): the UART
+ * refuses a new write while the previous one is still being sent.
+ */
+static char out[256];
 
 /* Build time string "HHMMSS.00" from seconds since fix start */
 static void build_time_str(char *out, uint32_t sim_time) {
@@ -93,11 +95,13 @@ static void build_time_str(char *out, uint32_t sim_time) {
 
 static void on_timer(void *user_data) {
   elapsed_seconds++;
+  out[0] = '\0';
 
   /* Simulate cold-start delay - no fix for the first few seconds */
   if (elapsed_seconds < FIX_DELAY_SECONDS) {
-    send_nmea("GPRMC,,V,,,,,,,,,,N");
-    send_nmea("GPGGA,,,,,,0,00,99.9,,,,,,");
+    append_nmea(out, "GPRMC,,V,,,,,,,,,,N");
+    append_nmea(out, "GPGGA,,,,,,0,00,99.9,,,,,,");
+    uart_write(uart, (uint8_t *)out, str_len(out));
     return;
   }
 
@@ -114,7 +118,7 @@ static void on_timer(void *user_data) {
   str_append(rmc, "GPRMC,");
   str_append(rmc, time_str);
   str_append(rmc, ",A,1258.2960,N,07735.6760,E,0.0,0.0,250326,0.0,E,A");
-  send_nmea(rmc);
+  append_nmea(out, rmc);
 
   /*
    * GPGGA - GPS Fix Data
@@ -125,7 +129,9 @@ static void on_timer(void *user_data) {
   str_append(gga, "GPGGA,");
   str_append(gga, time_str);
   str_append(gga, ",1258.2960,N,07735.6760,E,1,08,0.9,920.0,M,0.0,M,,");
-  send_nmea(gga);
+  append_nmea(out, gga);
+
+  uart_write(uart, (uint8_t *)out, str_len(out));
 }
 
 void chip_init(void) {

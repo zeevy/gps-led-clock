@@ -20,6 +20,7 @@
  */
 
 #include <config.h>
+#include "board.h"
 #include "RainEffect.h"
 #include "GpsStabilityFilter.h"
 
@@ -56,7 +57,7 @@ bool toggleBlinker = false;               // Controls colon blinking state in ti
 // ----------------------------------------------------------------------------
 // DISPLAY AND ANIMATION
 // ----------------------------------------------------------------------------
-Max72xxPanel ledMatrix = Max72xxPanel(MATRIX_CS_PIN, MATRIX_TOTAL_MODULES_X, MATRIX_TOTAL_MODULES_Y);
+Max72xxPanel ledMatrix = Max72xxPanel(PIN_MATRIX_CS, MATRIX_TOTAL_MODULES_X, MATRIX_TOTAL_MODULES_Y);
 RainEffect rainEffect(ledMatrix);         // Rain effect animation object
 char textScrollBuffer[TEXT_BUFFER_SIZE];  // Buffer for scrolling text display
 
@@ -80,12 +81,12 @@ TickTwo dateDisplayTicker(displayDate, DATE_DISPLAY_INTERVAL_MS);     // Timer f
  */
 void setup() {
   Serial.begin(115200);
-  while (!Serial) delay(100);
+  gpsSerial().begin(GPS_BAUD);
 
   // Initialize LED matrix with low brightness
+  spiBegin();
+  ledMatrix.begin();
   ledMatrix.setIntensity(LED_BRIGHTNESS_LOW);
-  ledMatrix.fillScreen(LOW);
-  ledMatrix.write();
   configureLedMatrix();
 
   // Read time format from EEPROM once
@@ -96,11 +97,11 @@ void setup() {
   checkPowerCycles();
 
   // Fun startup animation: randomly light up LEDs (increased delay for power cycle detection)
-  randomSeed(analogRead(A0));
+  seedRandom();
   for (int i = 0; i < ledMatrix.width() * ledMatrix.height(); i++) {
     ledMatrix.drawPixel(random(ledMatrix.width()), random(ledMatrix.height()), HIGH);
     ledMatrix.write();
-    delay(5);
+    waitMs(5);
   }
 
   // Display welcome message and start timers
@@ -114,10 +115,7 @@ void setup() {
 }
 
 void loop() {
-  while (Serial.available()){
-    char receivedChar = Serial.read();
-    gpsModule.encode(receivedChar);
-  }
+  readGps();
 
   if (validGpsDateTime()) {
     // GPS signal good - clear screen if transitioning from rain effect
@@ -138,6 +136,32 @@ void loop() {
     rainEffect.render();
     wasShowingRainEffect = true;
   }
+}
+
+/**
+ * @brief Feeds every waiting GPS byte to the NMEA parser
+ */
+void readGps() {
+  while (gpsSerial().available()) {
+    gpsModule.encode(gpsSerial().read());
+  }
+}
+
+/**
+ * @brief Waits like delay() but keeps reading the GPS
+ *
+ * The software serial port has a 64 byte receive buffer, which fills in
+ * about 67 ms at 9600 baud. Every animation delay goes through here, so
+ * no NMEA bytes are lost while the display is busy.
+ *
+ * @param ms Time to wait in milliseconds
+ */
+void waitMs(unsigned long ms) {
+  unsigned long start = millis();
+  do {
+    readGps();
+    yield();
+  } while (millis() - start < ms);
 }
 
 /**
@@ -259,7 +283,7 @@ void configureLedMatrix() {
  * @param message The text message to scroll (null-terminated string)
  * 
  * @note The function adds a space at the end of the message for better readability
- * @note Scroll speed is controlled by the delay(30) - adjust for different speeds
+ * @note Scroll speed is controlled by the waitMs(35) - adjust for different speeds
  * @note This function resets the previousTimeDigits to prevent animation conflicts
  * 
  * @example
@@ -284,17 +308,12 @@ void scrollTextHorizontally(const char* message) {
 
   // Scroll text from right edge to left edge
   for (int xPosition = ledMatrix.width(); xPosition >= -totalTextWidth; xPosition--) {
-    // Drain serial buffer to prevent GPS data loss during long scrolls
-    while (Serial.available()) {
-      gpsModule.encode(Serial.read());
-    }
-
     // Clear display and set cursor position
     ledMatrix.fillScreen(LOW);
     ledMatrix.setCursor(xPosition, 0);
     ledMatrix.print(textScrollBuffer);
     ledMatrix.write();
-    delay(35); // Control scroll speed (35ms per frame)
+    waitMs(35); // Control scroll speed (35ms per frame)
   }
 
   // Reset previous time digits to prevent animation conflicts
@@ -445,8 +464,8 @@ void extractTimeDigits(TimeDigits& digits) {
  * @param newChar The new character to display
  * @param xPosition The X coordinate where the animation occurs
  * 
- * @note Animation speed is controlled by delay(25) - adjust for different speeds
- * @note This function blocks execution during animation
+ * @note Animation speed is controlled by waitMs(25) - adjust for different speeds
+ * @note This function blocks the loop during animation, but keeps reading the GPS
  * 
  * @example
  * animateVerticalSlide('5', '6', 25); // Animate change from '5' to '6' at x=25
@@ -459,7 +478,7 @@ void animateVerticalSlide(char previousChar, char newChar, int xPosition) {
     // Draw previous character sliding down
     ledMatrix.drawChar(xPosition, yPosition, previousChar, HIGH, LOW, 1);
     ledMatrix.write();
-    delay(25); // Control animation speed (25ms per frame)
+    waitMs(25); // Control animation speed (25ms per frame)
   }
 }
 

@@ -18,7 +18,7 @@ A sophisticated Arduino-based GPS clock that displays time on a 32x8 LED matrix 
 ### Project Structure
 
 The project follows standard PlatformIO structure:
-- `src/` - Main source code (main.cpp, config.h, RainEffect.cpp/h)
+- `src/` - Main source code (main.cpp, config.h, board.h, RainEffect.cpp/h)
 - `lib/` - Custom libraries (Max72xxPanel for LED matrix control)
 - `platformio.ini` - Project configuration and dependencies
 - `test/` - Unit tests directory (currently empty)
@@ -97,7 +97,8 @@ Since this is embedded hardware, manual validation requires actual hardware:
 ## Configuration and Customization
 
 ### Key Configuration Files
-- `src/config.h` - Hardware pins, timing, timezone, messages
+- `src/config.h` - Timing, timezone, messages
+- `src/board.h` - Hardware pins and board specific calls, one block per core
 - `platformio.ini` - Build configuration, dependencies, board settings
 
 ### Common Customizations
@@ -108,7 +109,7 @@ Since this is embedded hardware, manual validation requires actual hardware:
 
 ### Hardware Configuration
 - **Fixed 32x8 LED matrix**: Project designed specifically for 4x MAX7219 modules
-- **Pin connections**: Defined in `config.h`, cannot be changed without code modifications
+- **Pin connections**: Defined in `src/board.h`; override them with `-D PIN_...` build flags
 - **GPS module**: Requires NMEA-compatible GPS (NEO-6M recommended)
 
 ## Build Troubleshooting
@@ -135,6 +136,7 @@ The project uses these libraries (auto-installed by PlatformIO):
 - Max72xxPanel (custom local library for LED matrix)
 - RTClib (date/time handling)
 - TickTwo (timer functions)
+- NeoSWSerial (GPS on pin 8 at 9600 baud)
 
 ## Code Quality and CI
 
@@ -147,7 +149,8 @@ The project uses these libraries (auto-installed by PlatformIO):
 
 ### Frequently Visited Files
 - **`src/main.cpp`** - Main application logic, setup(), loop(), time display functions
-- **`src/config.h`** - All configuration constants, pin definitions, messages, timing
+- **`src/config.h`** - All configuration constants, messages, timing
+- **`src/board.h`** - Pin definitions and board specific calls
 - **`src/RainEffect.cpp/h`** - Rain animation implementation when GPS signal lost
 - **`platformio.ini`** - Build configuration, board settings, library dependencies
 - **`README.md`** - Hardware setup, pin connections, feature documentation
@@ -156,14 +159,14 @@ The project uses these libraries (auto-installed by PlatformIO):
 - **Time display logic**: `main.cpp` functions `displayTime()`, `updateTimeDisplay()`
 - **GPS parsing**: `main.cpp` functions `readGPSData()`, `updateTimeFromGPS()`
 - **Configuration constants**: All in `config.h` - timezone, brightness, timing
-- **Hardware pin definitions**: `config.h` lines 50-52
+- **Hardware pin definitions**: `src/board.h`
 - **Animation effects**: `RainEffect.cpp` class methods
 - **Serial debugging**: `main.cpp` - look for `Serial.println()` calls
 
 ### Common Modification Points
 - **Timezone changes**: Edit `TIMEZONE_OFFSET_*` constants in `config.h`
 - **Display messages**: Update text constants in `config.h` (lines 124-130)
-- **Hardware pins**: Modify pin definitions in the pin definitions section of `config.h`
+- **Hardware pins**: Modify the pin defaults in `src/board.h`
 - **Timing intervals**: Adjust `*_INTERVAL_MS` constants in `config.h`
 - **Brightness levels**: Change `LED_BRIGHTNESS_*` in `config.h`
 
@@ -179,7 +182,7 @@ The project uses these libraries (auto-installed by PlatformIO):
 - **Adding new animations**: Extend `RainEffect` class or create similar
 - **Modifying time display**: Edit time formatting functions in `main.cpp`
 - **Adding new messages**: Update text arrays in `config.h`
-- **Hardware changes**: Update pin definitions in `config.h`
+- **Hardware changes**: Update pin definitions in `src/board.h`
 
 ## Important Limitations
 

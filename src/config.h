@@ -25,7 +25,6 @@
 #include <Adafruit_GFX.h>
 #include <Max72xxPanel.h>
 #include <RTClib.h>
-#include <TimerOne.h>
 #include <EEPROM.h>
 
 // ============================================================================
@@ -35,9 +34,12 @@
 /**
  * @brief Hardware pin connections for the GPS Clock
  * 
- * GPS Module Connections:
+ * Pin numbers live in board.h, one block per core.
+ *
+ * GPS Module Connections (Arduino Nano):
  * - GPS RX: Not connected (GPS module only transmits)
- * - GPS TX: Connected to Arduino RX0 (Digital Pin 0)
+ * - GPS TX: Connected to Arduino Pin 8 (software serial, 9600 baud)
+ * - Pin 9: Software serial TX, driven high. Leave free or wire to GPS RX
  * 
  * LED Matrix Connections (4xMAX7219):
  * - DIN (Data In): Connected to Arduino Pin 11 (MOSI)
@@ -46,9 +48,6 @@
  * - VCC: Connected to 5V
  * - GND: Connected to Ground
  */
-
-// Pin Definitions
-#define MATRIX_CS_PIN               10   // LED matrix chip select (CS) pin for SPI
 
 // LED Matrix Display Configuration
 // This project is designed specifically for a 32x8 LED matrix using 4x MAX7219 modules
@@ -174,6 +173,18 @@ struct TimeDigits {
 // ============================================================================
 // FUNCTION PROTOTYPES
 // ============================================================================
+
+/**
+ * @brief Feeds every waiting GPS byte to the NMEA parser
+ */
+void readGps();
+
+/**
+ * @brief Waits like delay() but keeps reading the GPS, so its receive
+ * buffer does not overflow during animations
+ * @param ms Time to wait in milliseconds
+ */
+void waitMs(unsigned long ms);
 
 /**
  * @brief Updates GPS time and displays it on the LED matrix

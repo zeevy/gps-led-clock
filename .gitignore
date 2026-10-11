@@ -112,3 +112,5 @@ node_modules/
 # Build directories
 build/
 dist/
+# Wokwi chip API header, downloaded by wokwi-cli chip compile
+chips/wokwi-api.h
