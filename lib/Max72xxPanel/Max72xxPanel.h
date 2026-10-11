@@ -41,6 +41,12 @@ public:
    */
   Max72xxPanel(byte csPin, byte hDisplays=1, byte vDisplays=1);
 
+  /*
+   * Set up the CS pin and the displays, and switch them on with a
+   * blank screen. Start the SPI bus (SPI.begin()) before calling this.
+   */
+  void begin();
+
 	/*
 	 * Define how the displays are ordered. The first display (0)
 	 * is the one closest to the Arduino.

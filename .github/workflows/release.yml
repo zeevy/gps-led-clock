@@ -59,7 +59,7 @@ jobs:
             echo
             echo "Download \`gps-led-clock-${TAG}.hex\` below and flash to an Arduino Nano (ATmega328P)."
             echo
-            echo "**Disconnect the GPS module's TX from Arduino pin 0 (RX0) before flashing**, otherwise the upload will fail because GPS shares the hardware UART."
+            echo "Wire the GPS TX to pin 8. The GPS module must send at 9600 baud."
             echo
             echo "### avrdude (CLI)"
             echo

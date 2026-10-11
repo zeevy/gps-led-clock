@@ -32,7 +32,7 @@
     [ "NANO:11", "M1:DIN", "orange", [ "v-57.6", "h-67.2", "v-67.2" ] ],
     [ "NANO:10", "M1:CS", "yellow", [ "v-48", "h-76.8", "v-76.8" ] ],
     [ "NANO:13", "M1:CLK", "green", [ "v9.6", "h-86.4", "v-220.8" ] ],
-    [ "GPS:TX", "NANO:0", "purple", [ "h-57.6", "v115.2", "h-67.2" ] ],
+    [ "GPS:TX", "NANO:8", "purple", [] ],
     [ "GPS:VCC", "NANO:5V", "red", [ "h57.6", "v96", "h-172.8" ] ],
     [ "GPS:GND", "NANO:GND.1", "black", [ "h57.6", "v105.6", "h-182.4" ] ]
   ],

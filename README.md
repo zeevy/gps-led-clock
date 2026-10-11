@@ -37,7 +37,8 @@ A sophisticated Arduino-based GPS clock that displays time on a 32x8 LED matrix 
 
 | Component           | Arduino Pin         | Description         |
 |---------------------|--------------------|---------------------|
-| **GPS TX**          | RX0 (Digital Pin 0)| GPS data output     |
+| **GPS TX**          | Pin 8              | GPS data output (software serial, 9600 baud) |
+| **GPS RX**          | Pin 9 (optional)   | Software serial TX, driven high. Leave free or wire to GPS RX |
 | **GPS VCC**         | 5V                 | Power supply        |
 | **GPS GND**         | GND                | Ground              |
 | **LED Matrix DIN**  | Pin 11 (MOSI)      | Data input          |
@@ -60,6 +61,7 @@ https://github.com/user-attachments/assets/0466696c-467c-4d51-b680-a392c1aeb819
   - Max72xxPanel
   - RTClib
   - TickTwo
+  - NeoSWSerial
 
 ## Installation & Setup
 
@@ -84,7 +86,7 @@ pio project init
 pio run -t upload
 ```
 
-> **Note:** Disconnect the GPS TX pin from Arduino RX0 during flashing/uploading.
+> **Note:** The GPS module must send at 9600 baud, the NEO-6M factory default. If yours was set to another speed, set it back to 9600 in u-center (UBX > CFG > PRT) and save it (UBX > CFG > CFG). The GPS is on pin 8, so it can stay connected while you upload and use the serial monitor.
 
 ## Configuration
 
