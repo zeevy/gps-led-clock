@@ -22,7 +22,7 @@
 // CONSTANTS
 // ============================================================================
 
-/** Number of GPS readings to store for filtering (12 readings ≈ 12 seconds) */
+/** Number of GPS readings to store for filtering. One reading is added each time the date shows (every 2.5 minutes), so 12 readings cover about 30 minutes */
 #define GPS_FILTER_WINDOW_SIZE          12
 
 /** Minimum readings needed before filtering (adaptive window) */
@@ -151,15 +151,10 @@ private:
   // ========================================================================
   
   /**
-   * @brief Helper function to sort an array of float values (for median calculation)
-   * 
-   * This function performs a simple bubble sort on a small array of float values.
-   * Used internally by the GPS filtering functions to calculate median values.
-   * 
-   * @param arr Array of float values to sort
-   * @param n Number of elements in the array
+   * @brief Trimmed mean of one reading buffer, or raw when there are too
+   * few readings or no valid fix
    */
-  void sortFloatArray(float arr[], uint8_t n);
+  float filtered(const float readings[], float raw, bool valid) const;
 };
 
 #endif // GPS_STABILITY_FILTER_H

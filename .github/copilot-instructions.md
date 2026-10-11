@@ -19,9 +19,9 @@ A sophisticated Arduino-based GPS clock that displays time on a 32x8 LED matrix 
 
 The project follows standard PlatformIO structure:
 - `src/` - Main source code (main.cpp, config.h, board.h, RainEffect.cpp/h)
-- `lib/` - Custom libraries (Max72xxPanel for LED matrix control)
+- `lib/` - Custom libraries (Max72xxPanel for LED matrix control, ClockLogic for the hardware-free logic)
 - `platformio.ini` - Project configuration and dependencies
-- `test/` - Unit tests directory (currently empty)
+- `test/` - Unit tests for `lib/ClockLogic`, run on the PC with `pio test -e native`
 - `.pio/` - Build output and cache (gitignored)
 
 ### Building and Development
@@ -91,8 +91,8 @@ Since this is embedded hardware, manual validation requires actual hardware:
 
 ### Unit Testing
 - **Test framework**: PlatformIO native unit testing
-- **Current status**: No unit tests implemented (`test/` directory contains only README)
-- **Running tests**: `pio test` (requires AVR platform installation)
+- **Current status**: `test/test_logic` tests the hardware-free code in `lib/ClockLogic` (time digits, date text, number format, GPS filter mean, power cycle counter). CI runs them on every push and PR
+- **Running tests**: `pio test -e native` (runs on the PC, no board needed)
 
 ## Configuration and Customization
 
@@ -177,10 +177,11 @@ The project uses these libraries (auto-installed by PlatformIO):
   - `config.h` (configuration constants)
   - `RainEffect.cpp/h` (animation effects)
   - `Max72xxPanel` (LED matrix library)
+  - `ClockLogic` (time digits, date text, number format; no hardware, unit tested)
 
 ### Common Development Tasks
 - **Adding new animations**: Extend `RainEffect` class or create similar
-- **Modifying time display**: Edit time formatting functions in `main.cpp`
+- **Modifying time display**: Edit `toDigits()` and `formatDate()` in `lib/ClockLogic`, and the drawing in `main.cpp`
 - **Adding new messages**: Update text arrays in `config.h`
 - **Hardware changes**: Update pin definitions in `src/board.h`
 
@@ -196,10 +197,9 @@ The project uses these libraries (auto-installed by PlatformIO):
 - **Code analysis**: Requires internet for analysis tools download
 - **Updates**: Library updates require internet connectivity
 
-### No CI/CD Pipeline
-- **No GitHub workflows**: Project lacks automated CI/CD
-- **Manual testing required**: All validation must be done with physical hardware
-- **No automated testing**: No integration with test runners
+### CI
+- **GitHub workflows**: `build.yml` builds the Nano firmware and runs the PC unit tests on every push and PR; `release.yml` publishes the firmware on `v*` tags
+- **Manual testing required**: Display and GPS behaviour still needs the Wokwi simulator or real hardware
 
 ## Quick Reference Commands
 
@@ -226,8 +226,8 @@ pio run -t clean                    # Clean build
 pio system info                     # System information
 pio boards nanoatmega328            # Board information
 
-# Testing (requires platform installation)
-pio test                           # Run unit tests (currently none)
+# Testing (runs on the PC, no board needed)
+pio test -e native                 # Run unit tests for lib/ClockLogic
 
 # Troubleshooting
 pio platform install atmelavr      # Install platform separately
