@@ -108,7 +108,7 @@ void setup() {
   scrollTextHorizontally(WELCOME_MESSAGE);
 
   // Reset power cycle counter after welcome message
-  EEPROM.put(EEPROM_POWER_CYCLE_ADDR, (unsigned long)0);
+  EEPROM.put(EEPROM_POWER_CYCLE_ADDR, (uint32_t)0);
 
   gpsTimeUpdateTicker.start();
   dateDisplayTicker.start();
@@ -202,7 +202,7 @@ void updateGpsTime() {
     ) + TimeSpan(TIMEZONE_OFFSET_DAYS, TIMEZONE_OFFSET_HOURS, TIMEZONE_OFFSET_MINUTES, TIMEZONE_OFFSET_SECONDS);
 
     // Extract individual digits for display
-    extractTimeDigits(currentTimeDigits);
+    currentTimeDigits = toDigits(currentDateTime.hour(), currentDateTime.minute(), currentDateTime.second(), is24Hour);
 
     // Animate digit changes with vertical slide effect
     if (currentTimeDigits.minOnes != previousTimeDigits.minOnes) {
@@ -241,7 +241,7 @@ void updateGpsTime() {
     #endif
 
     // Update previous digits for next comparison
-    extractTimeDigits(previousTimeDigits);
+    previousTimeDigits = currentTimeDigits;
     toggleBlinker = !toggleBlinker;
   }
 }
@@ -344,24 +344,9 @@ void displayDate() {
     return;
   }
 
-  // Bounds checking for array access using Arduino constrain function
-  int dayOfWeek = constrain(currentDateTime.dayOfTheWeek(), 0, 6);
-  int month = constrain(currentDateTime.month(), 1, 12);
-
-  // Format date string with ordinal suffix
-  // Format: "Day OrdinalSuffix Month Year" (e.g., "Mon 1st Jan 2024")
-  int day = currentDateTime.day();
-  const char* ordinalSuffix = getOrdinalSuffix(day);
-
-  snprintf(
-    textScrollBuffer, sizeof(textScrollBuffer),
-    "%s %d%s %s %d",
-    WEEKDAY_NAMES[dayOfWeek],
-    day,
-    ordinalSuffix,
-    MONTH_NAMES[month - 1],
-    currentDateTime.year()
-  );
+  // Format: "WED 25th MAR 2026"
+  formatDate(textScrollBuffer, sizeof(textScrollBuffer), currentDateTime.dayOfTheWeek(),
+             currentDateTime.day(), currentDateTime.month(), currentDateTime.year());
 
   // Display the formatted date
   scrollTextHorizontally(textScrollBuffer);
@@ -375,82 +360,6 @@ void displayDate() {
     // Day hours: 6AM to 9PM - use high brightness
     ledMatrix.setIntensity(LED_BRIGHTNESS_HIGH);
   }
-}
-
-/**
- * @brief Returns the appropriate ordinal suffix for a given number
- * 
- * This function determines the correct ordinal suffix (st, nd, rd, th) for a number.
- * It handles special cases for numbers ending in 11, 12, 13 (which all use "th")
- * and regular cases for other numbers.
- * 
- * @param number The number to get the ordinal suffix for
- * @return Pointer to the ordinal suffix string ("st", "nd", "rd", or "th")
- * 
- * @note This is a helper function for date formatting
- * 
- * @example
- * getOrdinalSuffix(1)  // Returns "st" (1st)
- * getOrdinalSuffix(2)  // Returns "nd" (2nd)
- * getOrdinalSuffix(3)  // Returns "rd" (3rd)
- * getOrdinalSuffix(11) // Returns "th" (11th)
- * getOrdinalSuffix(21) // Returns "st" (21st)
- */
-const char* getOrdinalSuffix(int number) {
-  int lastTwoDigits = number % 100;
-  int lastDigit = number % 10;
-
-  // Special case: 11th, 12th, 13th all use "th"
-  if (lastTwoDigits >= 11 && lastTwoDigits <= 13) {
-    return "th";
-  } else {
-    // Regular cases based on last digit
-    switch (lastDigit) {
-      case 1: return "st";
-      case 2: return "nd";
-      case 3: return "rd";
-      default: return "th";
-    }
-  }
-}
-
-/**
- * @brief Extracts individual digits from the current time for display
- * 
- * This function takes the current date/time and extracts individual digits
- * for hours, minutes, and seconds. It converts the numeric values to ASCII
- * characters for display on the LED matrix.
- * 
- * @param digits Reference to TimeDigits struct to store the extracted digits
- * 
- * @note Uses configurable time format (12-hour or 24-hour) based on TIME_FORMAT_* defines
- * @note All digits are converted to ASCII characters ('0' to '9')
- * 
- * @example
- * // 12-hour format: If current time is 2:35:47 PM
- * // digits.hourTens = '0', digits.hourOnes = '2'
- * // 24-hour format: If current time is 14:35:47
- * // digits.hourTens = '1', digits.hourOnes = '4'
- */
-void extractTimeDigits(TimeDigits& digits) {
-  // Get time components based on cached format
-  int hour;
-  if (is24Hour) {
-    hour = currentDateTime.hour();
-  } else {
-    hour = currentDateTime.twelveHour();
-  }
-
-  int minute = currentDateTime.minute();
-  int second = currentDateTime.second();
-
-  // Extract and convert digits to ASCII characters
-  digits.hourOnes = (hour % 10) + '0';
-  digits.hourTens = (hour / 10) + '0';
-  digits.minOnes = (minute % 10) + '0';
-  digits.minTens = (minute / 10) + '0';
-  digits.secOnes = (second % 10) + '0';
-  digits.secTens = (second / 10) + '0';
 }
 
 /**
@@ -495,18 +404,17 @@ void animateVerticalSlide(char previousChar, char newChar, int xPosition) {
  * @note Each coordinate is displayed on a separate line with scrolling
  * @note GPS precision is fixed at 4 decimal places for optimal readability
  * @note All values are validated before display to prevent invalid data
- * @note Uses integer arithmetic to avoid sprintf floating-point issues on Arduino
+ * @note formatFixed() uses integer arithmetic, because the AVR snprintf has no %f
  */
 void displayGpsLocation() {
   if (!gpsModule.location.isValid()) return;
 
   // Update GPS stability filter with new readings
   gpsFilter.update();
+  char number[16];
 
   // Display latitude using filtered value for stability (4 decimal places = ~11m accuracy)
   float lat = gpsFilter.getFilteredLatitude();
-  int latInt = (int)lat;
-  int latFrac = (int)(fabs(lat - latInt) * GPS_COORD_PRECISION_MULTIPLIER);
 
   #if ENABLE_SERIAL_DEBUG
   // Debug output: show raw vs filtered values
@@ -518,13 +426,12 @@ void displayGpsLocation() {
   Serial.println(gpsFilter.getTotalReadings());
   #endif
 
-  snprintf(textScrollBuffer, sizeof(textScrollBuffer), "%s%d.%04d", GPS_LAT_PREFIX, latInt, latFrac);
+  formatFixed(number, sizeof(number), lat, GPS_COORD_DECIMALS);
+  snprintf(textScrollBuffer, sizeof(textScrollBuffer), "%s%s", GPS_LAT_PREFIX, number);
   scrollTextHorizontally(textScrollBuffer);
 
   // Display longitude using filtered value for stability (4 decimal places = ~11m accuracy)
   float lng = gpsFilter.getFilteredLongitude();
-  int lngInt = (int)lng;
-  int lngFrac = (int)(fabs(lng - lngInt) * GPS_COORD_PRECISION_MULTIPLIER);
 
   #if ENABLE_SERIAL_DEBUG
   // Debug output: show raw vs filtered values
@@ -534,15 +441,13 @@ void displayGpsLocation() {
   Serial.println(lng, 6);
   #endif
 
-  snprintf(textScrollBuffer, sizeof(textScrollBuffer), "%s%d.%04d", GPS_LON_PREFIX, lngInt, lngFrac);
+  formatFixed(number, sizeof(number), lng, GPS_COORD_DECIMALS);
+  snprintf(textScrollBuffer, sizeof(textScrollBuffer), "%s%s", GPS_LON_PREFIX, number);
   scrollTextHorizontally(textScrollBuffer);
 
   // Display altitude using filtered value for stability if available
   if (gpsModule.altitude.isValid()) {
-    // Use filtered altitude value and integer arithmetic since Arduino sprintf doesn't support floating-point
-    double altFeet = gpsFilter.getFilteredAltitude();
-    int altInt = (int)altFeet;
-    int altFrac = (int)(fabs(altFeet - altInt) * GPS_ALT_PRECISION_MULTIPLIER);
+    float altFeet = gpsFilter.getFilteredAltitude();
 
     #if ENABLE_SERIAL_DEBUG
     // Debug output: show raw vs filtered altitude
@@ -553,7 +458,8 @@ void displayGpsLocation() {
     Serial.println("ft");
     #endif
 
-    snprintf(textScrollBuffer, sizeof(textScrollBuffer), "%s%d.%d%s", GPS_ALT_PREFIX, altInt, altFrac, GPS_ALT_SUFFIX);
+    formatFixed(number, sizeof(number), altFeet, GPS_ALT_DECIMALS);
+    snprintf(textScrollBuffer, sizeof(textScrollBuffer), "%s%s%s", GPS_ALT_PREFIX, number, GPS_ALT_SUFFIX);
     scrollTextHorizontally(textScrollBuffer);
   }
 }
@@ -574,17 +480,10 @@ void displayGpsLocation() {
  * @note Counter resets after welcome message
  */
 void checkPowerCycles() {
-  // Read cycle count from EEPROM
-  unsigned long cycleCount = 0;
+  // Read cycle count from EEPROM; a blank or corrupt value counts as 0
+  uint32_t cycleCount = 0;
   EEPROM.get(EEPROM_POWER_CYCLE_ADDR, cycleCount);
-
-  // Validate against uninitialized EEPROM (0xFFFFFFFF) or corrupt values
-  if (cycleCount > POWER_CYCLE_THRESHOLD * 2) {
-    cycleCount = 0;
-  }
-
-  // Increment cycle count
-  cycleCount++;
+  cycleCount = nextBootCount(cycleCount, POWER_CYCLE_THRESHOLD);
   EEPROM.put(EEPROM_POWER_CYCLE_ADDR, cycleCount);
 
   // If threshold reached, toggle time format

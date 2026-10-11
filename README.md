@@ -213,7 +213,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 1. **Code Style**: Follow Arduino C++ conventions
 2. **Documentation**: Add comprehensive comments and docstrings
-3. **Testing**: Test on actual hardware before submitting
+3. **Testing**: Run `pio test -e native` (PC unit tests), then test on actual hardware before submitting
 4. **Commits**: Use clear, descriptive commit messages
 
 ## Support

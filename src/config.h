@@ -26,6 +26,7 @@
 #include <Max72xxPanel.h>
 #include <RTClib.h>
 #include <EEPROM.h>
+#include <ClockLogic.h>
 
 // ============================================================================
 // HARDWARE CONFIGURATION
@@ -112,9 +113,9 @@ static const char* GPS_LON_PREFIX          = "LON:";  // Longitude prefix
 static const char* GPS_ALT_PREFIX          = "ALT:";  // Altitude prefix
 static const char* GPS_ALT_SUFFIX          = "ft";    // Altitude suffix (feet)
 
-// GPS Coordinate Precision Constants
-#define GPS_COORD_PRECISION_MULTIPLIER  10000    // For 4 decimal places (~11m accuracy)
-#define GPS_ALT_PRECISION_MULTIPLIER    10       // For 1 decimal place
+// GPS Display Precision (values are rounded)
+#define GPS_COORD_DECIMALS              4        // 4 decimal places (~11m accuracy)
+#define GPS_ALT_DECIMALS                1        // 1 decimal place
 
 // ============================================================================
 // TEXT AND MESSAGES
@@ -131,10 +132,6 @@ static const char* FORMAT_24H_MESSAGE      = "24H FORMAT";   // 24-hour format t
 // Text Display Configuration
 static const int TEXT_BUFFER_SIZE          = 75;  // Buffer size for scrolling text display
 
-// Date Formatting Arrays
-static const char* WEEKDAY_NAMES[7]        = { "SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT" };  // Abbreviated weekday names
-static const char* MONTH_NAMES[12]         = { "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" };  // Abbreviated month names
-
 // ============================================================================
 // POWER CYCLE DETECTION CONFIGURATION
 // ============================================================================
@@ -149,26 +146,6 @@ static const char* MONTH_NAMES[12]         = { "JAN", "FEB", "MAR", "APR", "MAY"
 // ============================================================================
 
 #define ENABLE_SERIAL_DEBUG         true     // Set to true for debug output, false for production
-
-// ============================================================================
-// DATA STRUCTURES
-// ============================================================================
-
-/**
- * @struct TimeDigits
- * @brief Holds individual digits for hours, minutes, and seconds for display
- * 
- * This structure stores the individual digits of the current time as ASCII characters.
- * It's used for comparing time changes and animating digit transitions.
- */
-struct TimeDigits {
-  uint8_t hourOnes = ' ';  /**< Hours ones digit (0-9) */
-  uint8_t hourTens = ' ';  /**< Hours tens digit (0-1) */
-  uint8_t minOnes = ' ';   /**< Minutes ones digit (0-9) */
-  uint8_t minTens = ' ';   /**< Minutes tens digit (0-5) */
-  uint8_t secOnes = ' ';   /**< Seconds ones digit (0-9) */
-  uint8_t secTens = ' ';   /**< Seconds tens digit (0-5) */
-};
 
 // ============================================================================
 // FUNCTION PROTOTYPES
@@ -223,19 +200,6 @@ void scrollTextHorizontally(const char* text);
  * @param xPosition The X coordinate where the animation occurs
  */
 void animateVerticalSlide(char previousChar, char newChar, int xPosition);
-
-/**
- * @brief Returns the appropriate ordinal suffix for a given number
- * @param number The number to get the ordinal suffix for
- * @return Pointer to the ordinal suffix string
- */
-const char* getOrdinalSuffix(int number);
-
-/**
- * @brief Extracts individual digits from the current time for display
- * @param digits Reference to TimeDigits struct to store the extracted digits
- */
-void extractTimeDigits(TimeDigits& digits);
 
 /**
  * @brief Detects power cycles and toggles time format if threshold is reached
